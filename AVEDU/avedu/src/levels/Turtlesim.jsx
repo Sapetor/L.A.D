@@ -10,7 +10,7 @@ import { useRoslib } from "../hooks/useRoslib";
 import "../styles/pages/turtlesim.scss";
 import { useStableRosSub } from "../hooks/useStableRosSub";
 
-const ROS_URL = process.env.REACT_APP_ROSBRIDGE_URL || "ws://localhost:9090";
+const ROS_URL = process.env.REACT_APP_ROSBRIDGE_URL || "ws://192.168.100.116:9090";
 const WORLD = 11.0889;
 
 // Objectives
