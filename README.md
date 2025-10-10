@@ -279,6 +279,38 @@ volumes:
 
 ---
 
+Si planeas ejecutar **Django**, **PostgreSQL**, **rosbridge** y el **frontend de React** en un mismo servidor y exponer la
+aplicación mediante la IP pública o privada de la máquina, sigue estos pasos:
+
+1. **Prepara el host**
+   - Actualiza el sistema e instala Docker y Docker Compose (`sudo apt-get update && sudo apt-get install docker.io docker-compose-plugin`).
+   - Abre los puertos necesarios en el firewall del servidor: `3000/tcp` (frontend), `8000/tcp` (API) y `9090/tcp` (rosbridge). Si usarás HTTPS tras un proxy, habilita también `80` y `443`.
+
+2. **Configura variables conscientes de la IP**
+   - Crea un archivo `.env.server` junto al `docker-compose.yml` con tu IP o dominio:
+     ```env
+     PUBLIC_HOST=10.0.0.5
+     REACT_APP_API_BASE=http://10.0.0.5:8000/api
+     REACT_APP_ROSBRIDGE_URL=ws://10.0.0.5:9090
+     DJANGO_ALLOWED_HOSTS=10.0.0.5,localhost
+     CORS_ALLOWED_ORIGINS=http://10.0.0.5:3000
+     ```
+   - Sobrescribe las variables del servicio `frontend` con `REACT_APP_API_BASE` y `REACT_APP_ROSBRIDGE_URL` para que el bundle apunte a la IP del servidor.
+   - Expone las variables `DJANGO_ALLOWED_HOSTS` y `CORS_ALLOWED_ORIGINS` en el servicio `api` para aceptar peticiones desde tu navegador.
+
+3. **Arranca los servicios**
+   - Ejecuta `docker compose --env-file .env.server up -d --build` para compilar el frontend con los valores correctos y levantar los contenedores.
+   - Verifica los logs con `docker compose logs -f` y confirma que la API aplica migraciones y que rosbridge quedó escuchando en `0.0.0.0:9090`.
+
+4. **Accede desde otra máquina**
+   - En un navegador conectado a la misma red (o vía internet si la IP es pública) visita `http://<tu-ip>:3000`.
+   - El frontend consultará `http://<tu-ip>:8000/api` para autenticación y progreso, y abrirá el WebSocket `ws://<tu-ip>:9090` hacia rosbridge.
+
+5. **Endurecimiento opcional**
+   - Coloca un proxy inverso (Nginx, Traefik o Caddy) al frente para servir el build de React en HTTPS y redirigir tráfico hacia `/api` y `/ros`.
+   - Automatiza la obtención de certificados TLS con Let's Encrypt (`certbot`) o Traefik `acme`.
+   - Habilita autenticación multifactor para las cuentas de staff en Django y restringe el acceso al puerto 9090 desde redes de confianza.
+
 ## Administración de unidades, niveles y objetivos
 
 1. **Inicia sesión** en `http://localhost:8000/admin` con una cuenta de staff.
