@@ -1,6 +1,29 @@
 
 L.A.D (Learn Autonomous Driving) es una plataforma web para cursos de robótica y conducción autónoma. Combina lecciones teóricas, actividades prácticas y evaluaciones que se enlazan con simulaciones ROS 2 ejecutadas en contenedores Docker. Con esta arquitectura, docentes y estudiantes pueden iniciar rápidamente un laboratorio de conducción autónoma sin preocuparse por instalaciones complejas.
 
+## Inicio rápido
+
+### Opción 1: Iniciar solo el frontend (Windows)
+Haz doble clic en `start-frontend.bat` para iniciar automáticamente el servidor de desarrollo con detección de IP.
+
+### Opción 2: Línea de comandos
+```bash
+npm install  # Solo la primera vez
+npm start    # Inicia el servidor de desarrollo
+```
+
+El servidor automáticamente:
+1. 🔍 Detectará tu IP de red local (ej: 192.168.1.100)
+2. 📝 Actualizará `config/ip_config.json`
+3. 🌐 Iniciará en `http://0.0.0.0:3000` (accesible desde la LAN)
+4. 📡 Mostrará las URLs de acceso local y de red
+
+**Acceso desde otros dispositivos:**
+- Local: `http://localhost:3000`
+- Red LAN: `http://192.168.x.x:3000` (la IP se muestra en la terminal)
+
+> 📚 **Documentación detallada:** Ver `INSTALLATION.md` para solución de problemas y `SETUP.md` para configuración de acceso LAN.
+
 ## Idea general de la aplicación
 
 - **Recorridos guiados por unidades y niveles.** El catálogo de aprendizaje está organizado en unidades temáticas; cada una despliega niveles con videos, slides interactivos y ejercicios prácticos que se consumen desde el navegador.

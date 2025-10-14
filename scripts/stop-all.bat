@@ -1,9 +1,16 @@
 @echo off
 REM scripts\stop-all.bat - Stop all L.A.D services (Windows)
 
+REM Get the directory where this script is located
+set "SCRIPT_DIR=%~dp0"
+REM Go to the parent directory (L.A.D root)
+cd /d "%SCRIPT_DIR%.."
+
 echo ========================================
 echo    L.A.D Platform - Stopping Services
 echo ========================================
+echo.
+echo Working directory: %CD%
 echo.
 
 REM Stop Node/React processes
@@ -28,9 +35,9 @@ echo.
 
 REM Stop Docker
 echo [3/3] Stopping ROS Docker...
-cd qcar_docker
+cd /d "%SCRIPT_DIR%..\qcar_docker"
 docker compose down
-cd ..
+cd /d "%SCRIPT_DIR%.."
 echo [OK] Docker stopped
 echo.
 

@@ -3,18 +3,25 @@ REM scripts\start-all.bat - Start all L.A.D services (Windows)
 
 setlocal enabledelayedexpansion
 
+REM Get the directory where this script is located
+set "SCRIPT_DIR=%~dp0"
+REM Go to the parent directory (L.A.D root)
+cd /d "%SCRIPT_DIR%.."
+
 echo ========================================
 echo    L.A.D Platform - Starting Services
 echo ========================================
 echo.
+echo Working directory: %CD%
+echo.
 
 REM Detect IP using Node.js
 echo [1/4] Detecting local IP address...
-cd AVEDU\avedu
+cd /d "%CD%\AVEDU\avedu"
 for /f "tokens=*" %%i in ('node scripts\detect-ip.js 2^>^&1 ^| findstr /C:"Detected local IP:"') do (
     for %%a in (%%i) do set IP=%%a
 )
-cd ..\..
+cd /d "%SCRIPT_DIR%.."
 
 if "%IP%"=="" (
     echo Warning: Could not auto-detect IP, reading from config
@@ -30,9 +37,9 @@ echo.
 
 REM Start ROS Docker
 echo [2/4] Starting ROS 2 Docker...
-cd qcar_docker
+cd /d "%SCRIPT_DIR%..\qcar_docker"
 docker compose up -d
-cd ..
+cd /d "%SCRIPT_DIR%.."
 echo [OK] ROS services running on:
 echo    - rosbridge: ws://%IP%:9090
 echo    - static server: http://%IP%:7000
@@ -40,7 +47,7 @@ echo.
 
 REM Start Django Backend
 echo [3/4] Starting Django backend...
-cd LAD\lad
+cd /d "%SCRIPT_DIR%..\LAD\lad"
 if not exist "..\\.venv" (
     echo Creating virtual environment...
     python -m venv ..\.venv
@@ -52,15 +59,15 @@ if not exist "..\\.venv" (
 
 python manage.py migrate --no-input
 start "Django Backend" python manage.py runserver 0.0.0.0:8000
-cd ..\..
+cd /d "%SCRIPT_DIR%.."
 echo [OK] Django API running on: http://%IP%:8000
 echo.
 
 REM Start React Frontend
 echo [4/4] Starting React frontend...
-cd AVEDU\avedu
+cd /d "%SCRIPT_DIR%..\AVEDU\avedu"
 start "React Frontend" cmd /k npm start
-cd ..\..
+cd /d "%SCRIPT_DIR%.."
 echo.
 
 echo ========================================
