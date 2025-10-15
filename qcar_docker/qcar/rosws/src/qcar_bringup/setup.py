@@ -17,5 +17,9 @@ setup(
     maintainer_email='you@example.com',
     description='Bringup para visualización web (URDF+TF) y servicios opcionales',
     license='MIT',
-    entry_points={'console_scripts': []},
+    entry_points={
+        'console_scripts': [
+            'compressed_republisher = qcar_bringup.compressed_republisher:main',
+        ],
+    },
 )

@@ -7,10 +7,10 @@ import AuthProvider from "./context/AuthContext";
 import { IP } from "./ip";
 
 /**
- * CAMBIA SOLO ESTA LÍNEA por PC/red:
- * (o define REACT_APP_HOST en .env)
+ * Host detection (auto-configured by start-all script via REACT_APP_HOST)
+ * Falls back to localhost if not set
  */
-const HOST = process.env.REACT_APP_HOST || "192.168.100.116";
+const HOST = process.env.REACT_APP_HOST || "localhost";
 
 /** (Opcional) si cambian puertos en ese PC:
  * const PORTS = { ROSBRIDGE: 9090, STATIC: 7000, API: 8000, WVS: 8080 };

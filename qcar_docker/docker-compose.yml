@@ -8,11 +8,11 @@ services:
       - "8080:8080"  # WVS (solo si lo activas)
       - "11345:11345" # Gazebo master (optional)
     environment:
-      - CORS_ALLOW_ORIGIN=http://localhost:3000,http://127.0.0.1:3000,http://192.168.100.116:3000
+      - CORS_ALLOW_ORIGIN=http://localhost:3000,http://127.0.0.1:3000,http://169.254.83.107:3000
       - ENABLE_JSP=1
       - ENABLE_ROSAPI=1
       - ENABLE_WVS=1
       - ENABLE_TURTLESIM=1
       - ENABLE_GAZEBO=1
-      - GAZEBO_WORLD=
+      - GAZEBO_WORLD=/ros2_ws/src/qcar_bringup/worlds/simple_track.world
       - DISPLAY=:99

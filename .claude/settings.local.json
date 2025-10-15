@@ -3,7 +3,9 @@
     "allow": [
       "Bash(dir:*)",
       "Bash(docker compose:*)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "Bash(timeout 15 docker compose logs -f)",
+      "Bash(curl -I http://169.254.83.107:9090)"
     ],
     "deny": [],
     "ask": []

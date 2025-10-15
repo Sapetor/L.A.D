@@ -1,5 +1,4 @@
 # Gazebo Integration - All Issues Fixed
-
 ## Summary
 
 All Docker and camera issues have been resolved. The Gazebo simulation is now fully functional and ready to use in the React app.

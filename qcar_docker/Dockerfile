@@ -6,7 +6,7 @@ SHELL ["/bin/bash", "-lc"]
 # ===== System & ROS packages =====
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y \
-        tini \   
+        tini \
         x11-apps \
         ros-humble-gazebo-ros-pkgs \
         ros-humble-rviz2 \
@@ -20,13 +20,16 @@ RUN apt-get update && apt-get upgrade -y && \
         ros-humble-joint-state-publisher \
         ros-humble-xacro \
         ros-humble-turtlesim \
+        ros-humble-image-transport \
+        ros-humble-image-transport-plugins \
+        ros-humble-compressed-image-transport \
         xvfb \
         python3-colcon-common-extensions \
         python3-pip \
         git curl net-tools nano dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip3 install --no-cache-dir pyquaternion
+RUN pip3 install --no-cache-dir pyquaternion Pillow numpy
 
 # ===== Workspace =====
 WORKDIR /ros2_ws

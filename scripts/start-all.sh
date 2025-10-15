@@ -11,10 +11,10 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}╔════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║   L.A.D Platform - Starting Services  ║${NC}"
-echo -e "${BLUE}╔════════════════════════════════════════╗${NC}\n"
+echo -e "${BLUE}╚════════════════════════════════════════╝${NC}\n"
 
 # Detect IP using Node.js
-echo -e "${GREEN}[1/4]${NC} Detecting local IP address..."
+echo -e "${GREEN}[1/6]${NC} Detecting local IP address..."
 cd AVEDU/avedu
 IP=$(node scripts/detect-ip.js 2>&1 | grep "Detected local IP:" | awk '{print $NF}')
 cd ../..
@@ -26,17 +26,49 @@ fi
 
 echo -e "${GREEN}✓${NC} Using IP: ${BLUE}$IP${NC}\n"
 
+# Update React .env.local with detected IP
+echo -e "${GREEN}[2/6]${NC} Updating React environment variables..."
+cat > AVEDU/avedu/.env.local <<EOF
+# .env.local - Local development overrides (gitignored)
+# This file is automatically managed by the start script
+
+# Bind to all network interfaces to allow LAN connections
+HOST=0.0.0.0
+
+# Allow connections from any host (required for LAN access)
+DANGEROUSLY_DISABLE_HOST_CHECK=true
+
+# API base - uses proxy during development
+REACT_APP_API_BASE=/api
+
+# Detected network IP for ROS/Static connections
+REACT_APP_HOST=$IP
+EOF
+echo -e "${GREEN}✓${NC} React .env.local updated with IP: ${BLUE}$IP${NC}\n"
+
+# Update Docker CORS configuration
+echo -e "${GREEN}[3/6]${NC} Updating Docker CORS configuration..."
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    sed -i '' "s|CORS_ALLOW_ORIGIN=http://localhost:3000,http://127.0.0.1:3000,http://[^:]*:3000|CORS_ALLOW_ORIGIN=http://localhost:3000,http://127.0.0.1:3000,http://$IP:3000|" qcar_docker/docker-compose.yml
+else
+    # Linux
+    sed -i "s|CORS_ALLOW_ORIGIN=http://localhost:3000,http://127.0.0.1:3000,http://[^:]*:3000|CORS_ALLOW_ORIGIN=http://localhost:3000,http://127.0.0.1:3000,http://$IP:3000|" qcar_docker/docker-compose.yml
+fi
+echo -e "${GREEN}✓${NC} CORS updated for IP: ${BLUE}$IP${NC}\n"
+
 # Start ROS Docker
-echo -e "${GREEN}[2/4]${NC} Starting ROS 2 Docker (rosbridge + QCar)..."
+echo -e "${GREEN}[4/6]${NC} Starting ROS 2 Docker (rosbridge + QCar + Gazebo)..."
 cd qcar_docker
 docker compose up -d
 cd ..
 echo -e "${GREEN}✓${NC} ROS services running on:"
 echo -e "   - rosbridge: ws://$IP:9090"
-echo -e "   - static server: http://$IP:7000\n"
+echo -e "   - static server: http://$IP:7000"
+echo -e "${YELLOW}⏳${NC} Gazebo initialization takes 60-90 seconds...\n"
 
 # Start Django Backend
-echo -e "${GREEN}[3/4]${NC} Starting Django backend..."
+echo -e "${GREEN}[5/6]${NC} Starting Django backend..."
 cd LAD/lad
 if [ ! -d "../.venv" ]; then
     echo -e "${YELLOW}⚠️  Virtual environment not found, creating...${NC}"
@@ -58,7 +90,7 @@ cd ../..
 echo -e "${GREEN}✓${NC} Django API running on: http://$IP:8000\n"
 
 # Start React Frontend
-echo -e "${GREEN}[4/4]${NC} Starting React frontend..."
+echo -e "${GREEN}[6/6]${NC} Starting React frontend..."
 cd AVEDU/avedu
 npm start &
 REACT_PID=$!
@@ -72,6 +104,13 @@ echo -e "${GREEN}═════════════════════
 echo -e "${BLUE}🌐 Access your application:${NC}"
 echo -e "   Local:   ${GREEN}http://localhost:3000${NC}"
 echo -e "   Network: ${GREEN}http://$IP:3000${NC}\n"
+
+echo -e "${BLUE}🔌 ROS endpoints:${NC}"
+echo -e "   rosbridge: ${GREEN}ws://$IP:9090${NC}"
+echo -e "   Static server: ${GREEN}http://$IP:7000${NC}"
+echo -e "   Django API: ${GREEN}http://$IP:8000${NC}\n"
+
+echo -e "${YELLOW}⏳ Wait 60-90 seconds for Gazebo to initialize${NC}\n"
 
 echo -e "${YELLOW}ℹ️  To stop all services, run:${NC}"
 echo -e "   ./scripts/stop-all.sh\n"

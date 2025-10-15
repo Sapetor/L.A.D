@@ -26,46 +26,30 @@ const GazeboSimViewer = ({ ros, connected }) => {
     if (!connected || !ros?.subscribeTopic) return;
 
     const cameraTopicMap = {
-      'rgb': '/qcar/rgb/image_color',
-      'front': '/qcar/csi_front/image_raw',
-      'right': '/qcar/csi_right/image_raw',
-      'back': '/qcar/csi_back/image_raw',
-      'left': '/qcar/csi_left/image_raw'
+      'rgb': '/qcar/rgb/image_color/compressed',
+      'front': '/qcar/csi_front/image_raw/compressed',
+      'right': '/qcar/csi_right/image_raw/compressed',
+      'back': '/qcar/csi_back/image_raw/compressed',
+      'left': '/qcar/csi_left/image_raw/compressed'
     };
 
     const cameraTopic = cameraTopicMap[selectedCamera];
 
     const unsubCamera = ros.subscribeTopic(
       cameraTopic,
-      'sensor_msgs/msg/Image',
+      'sensor_msgs/msg/CompressedImage',
       (message) => {
-        // Convert ROS Image message to displayable format
-        if (message.encoding === 'rgb8' || message.encoding === 'bgr8') {
-          const canvas = document.createElement('canvas');
-          canvas.width = message.width;
-          canvas.height = message.height;
-          const ctx = canvas.getContext('2d');
+        // Convert compressed JPEG data to displayable format
+        // CompressedImage message has 'data' field with JPEG bytes
+        const blob = new Blob([new Uint8Array(message.data)], { type: 'image/jpeg' });
+        const imageUrl = URL.createObjectURL(blob);
 
-          const imageData = ctx.createImageData(message.width, message.height);
-          const data = new Uint8Array(message.data);
-
-          for (let i = 0; i < data.length; i += 3) {
-            const pixelIndex = (i / 3) * 4;
-            if (message.encoding === 'rgb8') {
-              imageData.data[pixelIndex] = data[i];
-              imageData.data[pixelIndex + 1] = data[i + 1];
-              imageData.data[pixelIndex + 2] = data[i + 2];
-            } else { // bgr8
-              imageData.data[pixelIndex] = data[i + 2];
-              imageData.data[pixelIndex + 1] = data[i + 1];
-              imageData.data[pixelIndex + 2] = data[i];
-            }
-            imageData.data[pixelIndex + 3] = 255;
-          }
-
-          ctx.putImageData(imageData, 0, 0);
-          setCameraImage(canvas.toDataURL());
+        // Clean up previous URL to prevent memory leak
+        if (cameraImage && cameraImage.startsWith('blob:')) {
+          URL.revokeObjectURL(cameraImage);
         }
+
+        setCameraImage(imageUrl);
       }
     );
 

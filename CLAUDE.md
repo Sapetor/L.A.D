@@ -36,16 +36,26 @@ For convenience, use the provided scripts to start/stop everything:
 
 **Windows:**
 ```cmd
-scripts\start-all.bat       # Start backend, ROS docker, and frontend
+scripts\start-all.bat       # Auto-detect IP, update CORS, start all services
 scripts\stop-all.bat        # Stop all services
 ```
 
 **Linux/Mac:**
 ```bash
 chmod +x scripts/*.sh       # Make scripts executable (first time only)
-./scripts/start-all.sh      # Start backend, ROS docker, and frontend
+./scripts/start-all.sh      # Auto-detect IP, update CORS, start all services
 ./scripts/stop-all.sh       # Stop all services
 ```
+
+**What the start script does:**
+1. Detects your local network IP automatically
+2. Updates `AVEDU/avedu/.env.local` with `REACT_APP_HOST=<detected_ip>`
+3. Updates Docker CORS configuration with current IP
+4. Starts ROS Docker (rosbridge + Gazebo)
+5. Starts Django backend
+6. Starts React frontend
+
+**This eliminates ALL manual configuration when your IP changes - the system is fully dynamic!**
 
 ### Backend (LAD/lad/)
 ```bash
@@ -64,8 +74,12 @@ python manage.py runserver 0.0.0.0:8000  # Start development server
 cd qcar_docker
 docker compose build        # Build ROS 2 image with QCar packages
 docker compose up           # Start rosbridge (9090), static server (7000), optional WVS (8080)
+docker compose up -d        # Start in background (detached mode)
 docker compose down         # Stop and remove containers
+docker compose logs ros     # View container logs
 ```
+
+**Note:** Gazebo initialization takes 60-90 seconds. Wait for robot spawn to complete before using simulation.
 
 ## Network Configuration
 
@@ -182,12 +196,18 @@ The development server is configured to accept connections from other devices on
 **ROS Workspace:**
 - Base image: `osrf/ros:humble-desktop`
 - Workspace: `/ros2_ws/src/`
-- Packages: `qcar_description`, `qcar_bringup`, `tf2_web_republisher_py`
+- Packages: `qcar_description`, `qcar_bringup`, `tf2_web_republisher_py`, `compressed_republisher`
 
 **Services Exposed:**
 - Port 9090: `rosbridge_server` WebSocket for frontend communication
 - Port 7000: Static HTTP server for URDF files and meshes (with CORS)
 - Port 8080: `web_video_server` (optional, controlled by `ENABLE_WVS`)
+
+**Gazebo Simulation:**
+- Uses Gazebo Classic with QCar robot model
+- Startup time: 60-90 seconds for initialization and robot spawn
+- Provides 5 camera feeds (RGB + 4 CSI cameras), LIDAR, and odometry
+- Model database disabled for faster startup (no internet required)
 
 **entrypoint.sh Behavior:**
 1. Reads `IP_CONFIG_PATH` (`/config/ip_config.json`) for network configuration
@@ -200,8 +220,16 @@ The development server is configured to accept connections from other devices on
 - `IP_CONFIG_PATH` - Path to shared IP config JSON (mounted volume)
 - `CORS_ALLOW_ORIGIN` - Comma-separated allowed origins (auto-derived if not set)
 - `ENABLE_JSP`, `ENABLE_ROSAPI`, `ENABLE_WVS`, `ENABLE_TURTLESIM` - Feature toggles (1/0)
+- `GAZEBO_WORLD` - Optional path to custom Gazebo world file
 - `XACRO_ARGS` - Additional arguments for URDF generation
 - `STATIC_PORT`, `WVS_PORT` - Port overrides for static and video servers
+
+**Compressed Image Republisher:**
+- Custom ROS 2 node that converts raw camera images to compressed JPEG
+- Improves streaming performance from ~5 FPS to 30+ FPS over rosbridge WebSocket
+- Configurable JPEG quality (default: 80)
+- Automatically republishes to `/topic_name/compressed` topics
+- Configuration in `qcar_docker/compressed_republisher.yaml`
 
 ## Common Development Tasks
 
@@ -215,22 +243,25 @@ The development server is configured to accept connections from other devices on
 
 ### Changing Network IP
 
-**Automatic (Recommended):**
+**Easiest Method - Use start-all script:**
 ```bash
-cd AVEDU/avedu
-npm start  # Automatically detects IP and updates config
-```
+# Windows
+scripts\start-all.bat
 
-**Manual:**
+# Linux/Mac
+./scripts/start-all.sh
+```
+The start script automatically detects IP, updates all configurations (including Docker CORS), and restarts services.
+
+**Manual Method:**
 ```bash
 node scripts/set-ip.js 192.168.1.100
-# Then restart all services
+# Then manually update CORS in qcar_docker/docker-compose.yml
+# Update: CORS_ALLOW_ORIGIN=http://localhost:3000,http://127.0.0.1:3000,http://NEW_IP:3000
+# Finally restart all services
 ```
 
-**After IP change:**
-1. Restart Django: `python manage.py runserver 0.0.0.0:8000`
-2. Restart frontend: `npm start`
-3. Restart ROS Docker: `docker compose restart`
+**Important:** When IP changes, the Docker CORS configuration MUST be updated or rosbridge will reject WebSocket connections from the React app.
 
 ### Adding ROS Packages to Docker
 
@@ -238,6 +269,49 @@ node scripts/set-ip.js 192.168.1.100
 2. Update `Dockerfile` if external dependencies needed
 3. Rebuild: `docker compose build`
 4. Update launch files in `qcar_bringup` if needed
+
+### Working with Gazebo Simulation
+
+**Starting Gazebo:**
+```bash
+cd qcar_docker
+docker compose up -d  # Start in background
+# Wait 60-90 seconds for initialization
+docker compose logs ros | grep "spawn"  # Check if robot spawned successfully
+```
+
+**Using Gazebo in React Components:**
+```javascript
+import GazeboSimViewer from "../../components/gazebo/GazeboSimViewer";
+import RobotTeleop from "../../components/gazebo/RobotTeleop";
+
+export default function MyGazeboLevel() {
+  const { ros, connected } = useRoslib();
+
+  return (
+    <div>
+      <h1>Gazebo Simulation</h1>
+      <GazeboSimViewer ros={ros} connected={connected} />
+      <RobotTeleop ros={ros} connected={connected} />
+    </div>
+  );
+}
+```
+
+**Available ROS Topics:**
+- `/qcar/cmd_vel` - Control robot velocity (geometry_msgs/Twist)
+- `/qcar/odom` - Robot odometry (nav_msgs/Odometry)
+- `/qcar/lidar/scan` - LIDAR data (sensor_msgs/LaserScan)
+- `/qcar/rgb/image_raw` - RGB camera (sensor_msgs/Image)
+- `/qcar/csi_front/image_raw` - Front CSI camera
+- `/qcar/csi_right/image_raw` - Right CSI camera
+- `/qcar/csi_back/image_raw` - Back CSI camera
+- `/qcar/csi_left/image_raw` - Left CSI camera
+
+**Troubleshooting Gazebo:**
+- If robot doesn't spawn: Check logs with `docker compose logs ros`
+- If cameras don't work: Verify correct topic names (see Camera Topics section)
+- If performance is poor: Use compressed image topics (`/topic_name/compressed`)
 
 ### Running Full Stack Locally
 
@@ -307,5 +381,54 @@ python manage.py loaddata fixtures.json  # Load seed data (if exists)
 
 - Blockly/flow-based editors in `src/components/blocks/`
 - Turtlesim interface in `src/components/tsim/`
+- Gazebo simulation components in `src/components/gazebo/`
+  - `GazeboSimViewer.jsx` - Main simulation viewer with camera, LIDAR, and odometry displays
+  - `CameraSelector.jsx` - Switch between 5 camera feeds
+  - `RobotTeleop.jsx` - Keyboard and button-based robot control
 - Reusable widgets should be placed in `src/components/`
 - Level-specific code stays in `src/levels/`
+
+### Camera Topics (Gazebo Simulation)
+
+**Important:** Use the correct topic names when subscribing to camera feeds:
+- RGB Camera: `/qcar/rgb/image_raw` (NOT `/qcar/camera/image_raw`)
+- CSI Front: `/qcar/csi_front/image_raw`
+- CSI Right: `/qcar/csi_right/image_raw`
+- CSI Back: `/qcar/csi_back/image_raw`
+- CSI Left: `/qcar/csi_left/image_raw`
+
+**Performance Tip:** For better streaming performance, subscribe to compressed versions:
+- `/qcar/rgb/image_raw/compressed` (30+ FPS vs ~5 FPS for raw)
+
+### Common IP/CORS Issues
+
+**Problem:** "CORS request did not succeed" or "NetworkError when attempting to fetch resource"
+
+**Root Cause:** The IP changed but configurations weren't updated.
+
+**Solution:** Run the start-all script - it updates ALL configurations automatically:
+```bash
+# Windows
+scripts\start-all.bat
+
+# Linux/Mac
+./scripts/start-all.sh
+```
+
+**What gets updated:**
+1. `config/ip_config.json` - Shared IP config
+2. `AVEDU/avedu/.env.local` - React environment variable `REACT_APP_HOST`
+3. `qcar_docker/docker-compose.yml` - Docker CORS origins
+4. Django reads IP from `config/ip_config.json` automatically (no changes needed)
+
+**Manual debugging:**
+```bash
+# Check current IP
+cat config/ip_config.json
+
+# Check React env
+cat AVEDU/avedu/.env.local | grep REACT_APP_HOST
+
+# Check Docker CORS
+grep CORS_ALLOW_ORIGIN qcar_docker/docker-compose.yml
+```

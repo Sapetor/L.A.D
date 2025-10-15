@@ -3,11 +3,12 @@ import React, { useState } from "react";
 import CameraFeedUniversal from "./CameraFeedUniversal";
 
 const CAMERA_OPTIONS = [
-  { name: "RGB Camera", topic: "/qcar/rgb/image_raw", icon: "📹", compressed: false },
-  { name: "CSI Front", topic: "/qcar/csi_front/image_raw", icon: "⬆️", compressed: false },
-  { name: "CSI Right", topic: "/qcar/csi_right/image_raw", icon: "➡️", compressed: false },
-  { name: "CSI Back", topic: "/qcar/csi_back/image_raw", icon: "⬇️", compressed: false },
-  { name: "CSI Left", topic: "/qcar/csi_left/image_raw", icon: "⬅️", compressed: false },
+  { name: "RGB Camera", topic: "/qcar/rgb/image_color/compressed", icon: "📹", compressed: true },
+  { name: "CSI Front", topic: "/qcar/csi_front/image_raw/compressed", icon: "⬆️", compressed: true },
+  { name: "CSI Right", topic: "/qcar/csi_right/image_raw/compressed", icon: "➡️", compressed: true },
+  { name: "CSI Back", topic: "/qcar/csi_back/image_raw/compressed", icon: "⬇️", compressed: true },
+  { name: "CSI Left", topic: "/qcar/csi_left/image_raw/compressed", icon: "⬅️", compressed: true },
+  { name: "Overhead View", topic: "/qcar/overhead/image_raw/compressed", icon: "🛰️", compressed: true },
 ];
 
 export default function CameraSelector({ connected, subscribeTopic }) {

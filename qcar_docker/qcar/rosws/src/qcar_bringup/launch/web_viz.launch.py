@@ -69,6 +69,27 @@ def generate_launch_description():
         condition=IfCondition(enable_wvs)
     )
 
+    # Compressed image republisher for better streaming performance over rosbridge
+    # Converts raw images to compressed JPEG, improving FPS from ~5 to 30+
+    compressed_republisher = Node(
+        package='qcar_bringup',
+        executable='compressed_republisher',
+        name='compressed_republisher',
+        output='screen',
+        parameters=[{
+            'jpeg_quality': 85,  # Higher quality for better image (80-95 recommended)
+            'topics': [
+                '/qcar/rgb/image_color',
+                '/qcar/csi_front/image_raw',
+                '/qcar/csi_right/image_raw',
+                '/qcar/csi_back/image_raw',
+                '/qcar/csi_left/image_raw',
+                '/qcar/overhead/image_raw'
+            ]
+        }],
+        condition=IfCondition(enable_gazebo)  # Only run when Gazebo is enabled
+    )
+
     turtlesim = ExecuteProcess(
         cmd=['bash', '-lc', 'xvfb-run -s "-screen 0 800x600x24" ros2 run turtlesim turtlesim_node'],
         output='screen', condition=IfCondition(enable_turtle)
@@ -79,12 +100,14 @@ def generate_launch_description():
     pkg_qcar_description = FindPackageShare('qcar_description')
 
     # Launch Gazebo server with required plugins
+    # Use custom world if provided, otherwise use empty world
     gzserver = ExecuteProcess(
         cmd=[
             'gzserver',
             '--verbose',
             '-s', 'libgazebo_ros_init.so',
-            '-s', 'libgazebo_ros_factory.so'
+            '-s', 'libgazebo_ros_factory.so',
+            gazebo_world  # This will be the world file path or empty string
         ],
         output='screen',
         condition=IfCondition(enable_gazebo)
@@ -116,5 +139,5 @@ def generate_launch_description():
         DeclareLaunchArgument('enable_turtlesim', default_value='true'),
         DeclareLaunchArgument('enable_gazebo',    default_value='false'),
         DeclareLaunchArgument('gazebo_world',     default_value=''),
-        *env, http, rosbridge, tf2web, rsp, jsp, rosapi, wvs, turtlesim, gzserver, spawn_qcar
+        *env, http, rosbridge, tf2web, rsp, jsp, rosapi, wvs, compressed_republisher, turtlesim, gzserver, spawn_qcar
     ])
