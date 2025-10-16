@@ -1,12 +1,16 @@
 import React, { useState } from "react";
-import { Handle, Position } from "@xyflow/react";
+import { Position } from "@xyflow/react";
+import HandleWithLabel from "./HandleWithLabel";
 
-export default function StringNode({ id, data }) {
+/**
+ * TextNode - Generic text input node
+ * Can be used for package names, executable names, namespaces, etc.
+ */
+export default function TextNode({ id, data }) {
   const [value, setValue] = useState(String(data.value ?? ""));
 
   const change = (v) => {
     setValue(v);
-    // Notificar solo cuando el usuario cambia, evita efecto infinito
     data.onChange?.(id, { value: v });
   };
 
@@ -18,10 +22,18 @@ export default function StringNode({ id, data }) {
           className="rf-input"
           value={value}
           onChange={(e) => change(e.target.value)}
-          placeholder={data.placeholder || "escribe aquí..."}
+          placeholder={data.placeholder || "enter text..."}
         />
       </div>
-      <Handle type="source" position={Position.Right} id="out" />
+      <HandleWithLabel
+        type="source"
+        position={Position.Right}
+        id="out"
+        label="text"
+      />
     </div>
   );
 }
+
+// Keep StringNode as an alias for backward compatibility
+export { TextNode as StringNode };

@@ -1,40 +1,59 @@
 // components/blocks/UrdfInertialNode.jsx
-import React from "react";
-import { Handle, Position } from "@xyflow/react";
+import React, { useEffect } from "react";
+import { Position, useStore } from "@xyflow/react";
+import HandleWithLabel from "./HandleWithLabel";
 
 /**
  * URDF Inertial Node - Modular component for link inertia
- * Connects to UrdfLink node
+ * Can accept Coordinates node for origin
  */
 export default function UrdfInertialNode({ id, data }) {
   const d = data || {};
   const edit = (patch) => d.onChange?.(id, patch);
 
+  const edges = useStore((state) => state.edges);
+  const nodes = useStore((state) => state.nodes);
+
+  const connectedHandles = edges
+    .filter((e) => e.target === id)
+    .map((e) => e.targetHandle);
+
+  const isOriginConnected = connectedHandles.includes("origin");
+
   const inertia = d.inertia || {};
   const origin = d.origin || { xyz: [0, 0, 0], rpy: [0, 0, 0] };
+
+  // Update from external connections
+  useEffect(() => {
+    const srcFor = (handleId) => {
+      const edge = edges.find((e) => e.target === id && e.targetHandle === handleId);
+      if (!edge) return null;
+      return nodes.find((n) => n.id === edge.source);
+    };
+
+    if (isOriginConnected) {
+      const originSrc = srcFor("origin");
+      if (originSrc?.data?.xyz || originSrc?.data?.rpy) {
+        const newOrigin = {
+          xyz: originSrc.data.xyz || origin.xyz,
+          rpy: originSrc.data.rpy || origin.rpy
+        };
+        if (JSON.stringify(newOrigin) !== JSON.stringify(origin)) {
+          edit({ origin: newOrigin });
+        }
+      }
+    }
+  }, [edges, nodes, isOriginConnected]);
 
   const setInertia = (key, value) => {
     edit({ inertia: { ...inertia, [key]: value } });
   };
 
-  const setOriginXyz = (index, value) => {
-    const xyz = [...(origin.xyz || [0, 0, 0])];
-    xyz[index] = value;
-    edit({ origin: { ...origin, xyz } });
-  };
-
-  const setOriginRpy = (index, value) => {
-    const rpy = [...(origin.rpy || [0, 0, 0])];
-    rpy[index] = value;
-    edit({ origin: { ...origin, rpy } });
-  };
-
   return (
     <div className="rf-card rf-card--inertial" style={{ minWidth: 320 }}>
-      <div className="rf-card__title">⚖️ Inertial</div>
+      <div className="rf-card__title">Inertial</div>
 
       <div className="rf-card__body" style={{ display: "grid", gap: ".5rem" }}>
-        {/* Mass */}
         <div className="rf-field">
           <label>Mass (kg)</label>
           <input
@@ -47,7 +66,6 @@ export default function UrdfInertialNode({ id, data }) {
           />
         </div>
 
-        {/* Inertia tensor */}
         <div className="rf-field">
           <label>Inertia Tensor</label>
           <div className="rf-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: ".3rem" }}>
@@ -110,56 +128,34 @@ export default function UrdfInertialNode({ id, data }) {
           </div>
         </div>
 
-        {/* Origin */}
-        <details>
-          <summary className="rf-field__summary">Origin Transform</summary>
-          <div className="rf-field">
-            <label>Position (xyz)</label>
-            <div className="rf-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: ".3rem" }}>
-              {[0, 1, 2].map((i) => (
-                <input
-                  key={`xyz-${i}`}
-                  className="rf-input"
-                  type="number"
-                  step="0.01"
-                  placeholder={["x", "y", "z"][i]}
-                  value={origin.xyz?.[i] ?? 0}
-                  onChange={(e) => setOriginXyz(i, parseFloat(e.target.value) || 0)}
-                />
-              ))}
+        {/* Origin - collapsible */}
+        <div className={`rf-field--collapsible ${isOriginConnected ? 'rf-field--collapsed' : ''}`}>
+          <span className="rf-field__label">Origin Transform</span>
+          <div className="rf-field__input-wrapper">
+            <div style={{ fontSize: "0.85em", opacity: 0.7 }}>
+              xyz: [{origin.xyz.join(', ')}] | rpy: [{origin.rpy.join(', ')}]
             </div>
           </div>
-
-          <div className="rf-field">
-            <label>Rotation (rpy)</label>
-            <div className="rf-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: ".3rem" }}>
-              {[0, 1, 2].map((i) => (
-                <input
-                  key={`rpy-${i}`}
-                  className="rf-input"
-                  type="number"
-                  step="0.01"
-                  placeholder={["r", "p", "y"][i]}
-                  value={origin.rpy?.[i] ?? 0}
-                  onChange={(e) => setOriginRpy(i, parseFloat(e.target.value) || 0)}
-                />
-              ))}
-            </div>
-          </div>
-        </details>
+        </div>
       </div>
 
-      {/* Output handle - connects to Link */}
-      <Handle
+      {/* Input handle for origin */}
+      <HandleWithLabel
+        type="target"
+        position={Position.Left}
+        id="origin"
+        label="origin"
+        color="purple"
+        top="65%"
+      />
+
+      {/* Output handle */}
+      <HandleWithLabel
         type="source"
         position={Position.Right}
         id="inertial"
-        style={{
-          width: "16px",
-          height: "16px",
-          background: "#ff9800",
-          border: "3px solid #fff"
-        }}
+        label="inertial"
+        color="orange"
       />
     </div>
   );

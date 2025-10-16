@@ -1,5 +1,5 @@
 // components/blocks/index.js
-// Registro de nodos + paletas + defaultData para tus slides
+// Node registration + palettes + default data
 
 import CreatePackageNode from "./CreatePackageNode";
 import RosRunNode from "./RosRunNode";
@@ -7,14 +7,14 @@ import StringNode from "./StringNode";
 import ListItemsNode from "./ListItemsNode";
 import ConvertToCodeNode from "./ConvertToCodeNode";
 
-// --- URDF blocks (original) ---
+// URDF blocks (original)
 import UrdfLinkNode from "./UrdfLinkNode";
 import UrdfJointNode from "./UrdfJointNode";
 import UrdfRobotNode from "./UrdfRobotNode";
 import UrdfPreviewNode from "./UrdfPreviewNode";
 import UrdfViewerNode from "./UrdfViewerNode";
 
-// --- URDF blocks V2 (modular/improved) ---
+// URDF blocks V2 (modular/improved)
 import UrdfLinkNodeV2 from "./UrdfLinkNodeV2";
 import UrdfInertialNode from "./UrdfInertialNode";
 import UrdfVisualNode from "./UrdfVisualNode";
@@ -22,11 +22,19 @@ import UrdfCollisionNode from "./UrdfCollisionNode";
 import UrdfAssemblyNode from "./UrdfAssemblyNode";
 import UrdfXmlPreviewNode from "./UrdfXmlPreviewNode";
 
+// New utility blocks
+import CoordinatesNode from "./CoordinatesNode";
+import GeometryNode from "./GeometryNode";
+
+// Palette component
+export { default as CategorizedPalette } from "./CategorizedPalette";
+
 export const nodeTypes = {
-  // existentes
+  // ROS blocks
   createPackage: CreatePackageNode,
   rosRun: RosRunNode,
   string: StringNode,
+  text: StringNode, // Alias for generic text node
   listArgs: ListItemsNode,
   listDeps: ListItemsNode,
   toCode: ConvertToCodeNode,
@@ -45,53 +53,83 @@ export const nodeTypes = {
   urdfCollision: UrdfCollisionNode,
   urdfAssembly: UrdfAssemblyNode,
   urdfXmlPreview: UrdfXmlPreviewNode,
+
+  // Utility blocks
+  coordinates: CoordinatesNode,
+  geometry: GeometryNode,
 };
 
-// Paleta existente: run
+// Legacy palettes (for backward compatibility)
 export const paletteRun = [
-  { type: "string:pkg", label: "Package" },
-  { type: "string:exe", label: "Executable" },
-  { type: "string:ns",  label: "Namespace" },
-  { type: "listArgs",   label: "Args" },
-  { type: "rosRun",     label: "ROS Run" },
-  { type: "toCode",     label: "Convert2Code" },
+  { type: "text", label: "Text", category: "Input" },
+  { type: "listArgs", label: "Args", category: "Input" },
+  { type: "rosRun", label: "ROS Run", category: "ROS" },
+  { type: "toCode", label: "Convert2Code", category: "Output" },
 ];
 
-// Paleta existente: create package
 export const paletteCreate = [
-  { type: "string:pkgName", label: "Package Name" },
-  { type: "string:nodeName", label: "Node Name" },
-  { type: "listDeps", label: "Dependencies" },
-  { type: "createPackage", label: "Create Package" },
-  { type: "toCode", label: "Convert2Code" },
+  { type: "text", label: "Text", category: "Input" },
+  { type: "listDeps", label: "Dependencies", category: "Input" },
+  { type: "createPackage", label: "Create Package", category: "ROS" },
+  { type: "toCode", label: "Convert2Code", category: "Output" },
 ];
 
-// Paleta URDF (Original - all-in-one)
 export const paletteUrdf = [
-  { type: "urdfLink",    label: "URDF Link" },
-  { type: "urdfJoint",   label: "URDF Joint" },
-  { type: "urdfRobot",   label: "URDF Robot" },
-  { type: "urdfPreview", label: "URDF XML" },
-  { type: "urdfViewer",  label: "URDF Viewer" },
+  { type: "urdfLink", label: "URDF Link", category: "URDF" },
+  { type: "urdfJoint", label: "URDF Joint", category: "URDF" },
+  { type: "urdfRobot", label: "URDF Robot", category: "URDF" },
+  { type: "urdfPreview", label: "URDF XML", category: "Output" },
+  { type: "urdfViewer", label: "URDF Viewer", category: "Visualization" },
 ];
 
-// Paleta URDF V2 (Modular - Blender-style)
 export const paletteUrdfV2 = [
-  // Component nodes
-  { type: "urdfInertial",  label: "⚖️ Inertial" },
-  { type: "urdfVisual",    label: "👁️ Visual" },
-  { type: "urdfCollision", label: "🛡️ Collision" },
-
-  // Structure nodes
-  { type: "urdfLinkV2",    label: "🔗 Link" },
-  { type: "urdfJoint",     label: "🔩 Joint" },
-  { type: "urdfAssembly",  label: "🔧 Assembly" },
-
-  // Output nodes
-  { type: "urdfRobot",      label: "🤖 Robot" },
-  { type: "urdfXmlPreview", label: "📄 XML Preview" },
-  { type: "urdfViewer",     label: "👀 3D Viewer" },
+  { type: "urdfInertial", label: "Inertial", category: "URDF" },
+  { type: "urdfVisual", label: "Visual", category: "URDF" },
+  { type: "urdfCollision", label: "Collision", category: "URDF" },
+  { type: "urdfLinkV2", label: "Link", category: "URDF" },
+  { type: "urdfJoint", label: "Joint", category: "URDF" },
+  { type: "urdfAssembly", label: "Assembly", category: "URDF" },
+  { type: "urdfRobot", label: "Robot", category: "URDF" },
+  { type: "urdfXmlPreview", label: "XML Preview", category: "Output" },
+  { type: "urdfViewer", label: "3D Viewer", category: "Visualization" },
 ];
+
+// New categorized palettes
+export const paletteCategorized = {
+  Input: [
+    { type: "text", label: "Text" },
+    { type: "listArgs", label: "Args List" },
+    { type: "listDeps", label: "Dependencies List" },
+    { type: "coordinates", label: "Coordinates" },
+    { type: "geometry", label: "Geometry" },
+  ],
+  ROS: [
+    { type: "createPackage", label: "Create Package" },
+    { type: "rosRun", label: "ROS Run" },
+  ],
+  URDF: [
+    { type: "urdfInertial", label: "Inertial" },
+    { type: "urdfVisual", label: "Visual" },
+    { type: "urdfCollision", label: "Collision" },
+    { type: "urdfLinkV2", label: "Link" },
+    { type: "urdfJoint", label: "Joint" },
+    { type: "urdfAssembly", label: "Assembly" },
+    { type: "urdfRobot", label: "Robot" },
+  ],
+  "URDF (Legacy)": [
+    { type: "urdfLink", label: "Link (All-in-one)" },
+    { type: "urdfJoint", label: "Joint" },
+    { type: "urdfRobot", label: "Robot" },
+  ],
+  Output: [
+    { type: "toCode", label: "Convert to Code" },
+    { type: "urdfPreview", label: "URDF XML" },
+    { type: "urdfXmlPreview", label: "XML Preview" },
+  ],
+  Visualization: [
+    { type: "urdfViewer", label: "URDF 3D Viewer" },
+  ],
+};
 
 export function defaultDataFor(typeOrPreset) {
   // -------- existentes --------
@@ -201,6 +239,21 @@ export function defaultDataFor(typeOrPreset) {
 
   if (typeOrPreset === "urdfXmlPreview")
     return { xml: "" };
+
+  // -------- New utility blocks --------
+  if (typeOrPreset === "coordinates")
+    return {
+      xyz: [0, 0, 0],
+      rpy: [0, 0, 0]
+    };
+
+  if (typeOrPreset === "geometry")
+    return {
+      geometry: { type: "box", size: [1, 1, 1] }
+    };
+
+  if (typeOrPreset === "text")
+    return { label: "Text", value: "", placeholder: "enter text..." };
 
   return {};
 }

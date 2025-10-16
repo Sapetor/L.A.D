@@ -6,7 +6,7 @@
 /* ========= layout 3 franjas ========= */
 .rfp-wrap {
   display: grid;
-  grid-template-rows: 56px minmax(420px, 60vh) auto;
+  grid-template-rows: auto minmax(420px, 60vh) auto;
   gap: .75rem;
 }
 
@@ -16,12 +16,15 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: .4rem .6rem;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
+  min-height: 56px;
 }
 .rfp-palette__inner {
   display: flex;
   align-items: center;
   gap: .5rem;
+  flex-wrap: wrap;
 }
 
 /* ---------- Canvas (middle) ---------- */
@@ -124,6 +127,166 @@
   transform: translateY(-1px);
   border-color: rgba(125,249,255,.55);
   box-shadow: 0 8px 18px rgba(125,249,255,.25), 0 0 24px rgba(255,92,244,.12) inset;
+}
+
+/* ========= Handle styling with labels ========= */
+.react-flow__handle {
+  width: 20px !important;
+  height: 20px !important;
+  border: 3px solid var(--neon) !important;
+  background: transparent !important;
+}
+
+.react-flow__handle:hover {
+  border-color: var(--neon) !important;
+  box-shadow: 0 0 12px var(--neon);
+}
+
+.react-flow__handle-left {
+  left: -10px;
+}
+
+.react-flow__handle-right {
+  right: -10px;
+}
+
+/* Handle label styling */
+.rf-handle-label {
+  position: absolute;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+}
+
+.react-flow__handle:hover + .rf-handle-label {
+  opacity: 1;
+}
+
+.rf-handle-label--left {
+  left: -10px;
+  transform: translate(-100%, -50%);
+  padding-right: 8px;
+}
+
+.rf-handle-label--right {
+  right: -10px;
+  transform: translate(100%, -50%);
+  padding-left: 8px;
+}
+
+/* Handle color overrides via data attributes */
+.react-flow__handle[data-handlecolor="orange"] {
+  border-color: #ff9800 !important;
+}
+
+.react-flow__handle[data-handlecolor="blue"] {
+  border-color: #2196f3 !important;
+}
+
+.react-flow__handle[data-handlecolor="red"] {
+  border-color: #f44336 !important;
+}
+
+.react-flow__handle[data-handlecolor="green"] {
+  border-color: #4caf50 !important;
+}
+
+.react-flow__handle[data-handlecolor="purple"] {
+  border-color: #9c27b0 !important;
+}
+
+.react-flow__handle[data-handlecolor="orange"]:hover {
+  box-shadow: 0 0 12px #ff9800;
+}
+
+.react-flow__handle[data-handlecolor="blue"]:hover {
+  box-shadow: 0 0 12px #2196f3;
+}
+
+.react-flow__handle[data-handlecolor="red"]:hover {
+  box-shadow: 0 0 12px #f44336;
+}
+
+.react-flow__handle[data-handlecolor="green"]:hover {
+  box-shadow: 0 0 12px #4caf50;
+}
+
+.react-flow__handle[data-handlecolor="purple"]:hover {
+  box-shadow: 0 0 12px #9c27b0;
+}
+
+/* Collapsible input field styling */
+.rf-field--collapsible {
+  display: grid;
+  gap: .25rem;
+}
+
+.rf-field--collapsible .rf-field__label {
+  /* Label always visible */
+  opacity: 1;
+  transition: none;
+}
+
+.rf-field--collapsible .rf-field__input-wrapper {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+  max-height: 100px;
+}
+
+.rf-field--collapsed .rf-field__input-wrapper {
+  max-height: 0 !important;
+  opacity: 0;
+  margin: 0 !important;
+}
+
+/* Add padding to card body to create space from handles */
+.rf-card__body {
+  padding: .6rem 2rem .6rem .75rem;
+}
+
+/* Tabbed palette styling */
+.rfp-palette--tabbed {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 0.5rem;
+}
+
+.rfp-palette__tabs {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.4rem;
+}
+
+.rfp-palette__tab {
+  cursor: pointer;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.rfp-palette__tab:hover {
+  background: var(--glass);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.rfp-palette__tab--active {
+  background: var(--glass);
+  color: var(--neon);
+  border-color: var(--neon);
+  box-shadow: 0 0 8px rgba(125, 249, 255, 0.25);
 }
 
 /* responsive */

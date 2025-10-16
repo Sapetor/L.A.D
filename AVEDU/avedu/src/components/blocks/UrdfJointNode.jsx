@@ -1,41 +1,100 @@
 // components/blocks/UrdfJointNode.jsx
-import React from "react";
-import { Handle, Position } from "@xyflow/react";
+import React, { useEffect, useState } from "react";
+import { Position, useStore } from "@xyflow/react";
+import HandleWithLabel from "./HandleWithLabel";
 
 /**
- * URDF Joint
- * data esperada:
- * {
- *   id, name, type: 'fixed'|'revolute'|'continuous'|'prismatic'|'floating'|'planar',
- *   parent, child,
- *   origin: { xyz:[x,y,z], rpy:[r,p,y] },
- *   axis: { xyz:[x,y,z] },
- *   onChange(id, patch)
- * }
+ * URDF Joint - Can accept external inputs for parent, child, origin, and axis
  */
 export default function UrdfJointNode({ id, data }) {
   const d = data || {};
   const edit = (patch) => d.onChange?.(id, patch);
 
-  const setOrigin = (k, val) => {
-    const base = d.origin || {};
-    const arr = [...(base.xyz || [0, 0, 0])];
-    arr[k] = val;
-    edit({ origin: { ...base, xyz: arr } });
+  const edges = useStore((state) => state.edges);
+  const nodes = useStore((state) => state.nodes);
+
+  const connectedHandles = edges
+    .filter((e) => e.target === id)
+    .map((e) => e.targetHandle);
+
+  const isParentConnected = connectedHandles.includes("parent");
+  const isChildConnected = connectedHandles.includes("child");
+  const isOriginConnected = connectedHandles.includes("origin");
+  const isAxisConnected = connectedHandles.includes("axis");
+
+  const [parent, setParent] = useState(d.parent || "");
+  const [child, setChild] = useState(d.child || "");
+
+  const origin = d.origin || { xyz: [0, 0, 0], rpy: [0, 0, 0] };
+  const axis = d.axis || { xyz: [1, 0, 0] };
+
+  // Update from external connections
+  useEffect(() => {
+    const srcFor = (handleId) => {
+      const edge = edges.find((e) => e.target === id && e.targetHandle === handleId);
+      if (!edge) return null;
+      return nodes.find((n) => n.id === edge.source);
+    };
+
+    let updated = false;
+    let newData = {};
+
+    if (isParentConnected) {
+      const parentSrc = srcFor("parent");
+      if (parentSrc?.data?.value && parentSrc.data.value !== parent) {
+        setParent(parentSrc.data.value);
+        newData.parent = parentSrc.data.value;
+        updated = true;
+      }
+    }
+
+    if (isChildConnected) {
+      const childSrc = srcFor("child");
+      if (childSrc?.data?.value && childSrc.data.value !== child) {
+        setChild(childSrc.data.value);
+        newData.child = childSrc.data.value;
+        updated = true;
+      }
+    }
+
+    if (isOriginConnected) {
+      const originSrc = srcFor("origin");
+      if (originSrc?.data?.xyz || originSrc?.data?.rpy) {
+        const newOrigin = {
+          xyz: originSrc.data.xyz || origin.xyz,
+          rpy: originSrc.data.rpy || origin.rpy
+        };
+        if (JSON.stringify(newOrigin) !== JSON.stringify(origin)) {
+          newData.origin = newOrigin;
+          updated = true;
+        }
+      }
+    }
+
+    if (isAxisConnected) {
+      const axisSrc = srcFor("axis");
+      if (axisSrc?.data?.axis) {
+        const newAxis = { xyz: axisSrc.data.axis };
+        if (JSON.stringify(newAxis) !== JSON.stringify(axis)) {
+          newData.axis = newAxis;
+          updated = true;
+        }
+      }
+    }
+
+    if (updated) {
+      edit(newData);
+    }
+  }, [edges, nodes, isParentConnected, isChildConnected, isOriginConnected, isAxisConnected]);
+
+  const onParentChange = (val) => {
+    setParent(val);
+    edit({ parent: val });
   };
 
-  const setRpy = (k, val) => {
-    const base = d.origin || {};
-    const arr = [...(base.rpy || [0, 0, 0])];
-    arr[k] = val;
-    edit({ origin: { ...base, rpy: arr } });
-  };
-
-  const setAxis = (k, val) => {
-    const base = d.axis || {};
-    const arr = [...(base.xyz || [1, 0, 0])];
-    arr[k] = val;
-    edit({ axis: { xyz: arr } });
+  const onChildChange = (val) => {
+    setChild(val);
+    edit({ child: val });
   };
 
   return (
@@ -44,7 +103,7 @@ export default function UrdfJointNode({ id, data }) {
 
       <div className="rf-card__body" style={{ display: "grid", gap: ".5rem" }}>
         <div className="rf-field">
-          <span>Name</span>
+          <label>Name</label>
           <input
             className="rf-input"
             value={d.name || ""}
@@ -53,8 +112,8 @@ export default function UrdfJointNode({ id, data }) {
           />
         </div>
 
-        <div className="rf-inline">
-          <span>Type</span>
+        <div className="rf-field">
+          <label>Type</label>
           <select
             className="rf-input"
             value={d.type || "fixed"}
@@ -69,81 +128,94 @@ export default function UrdfJointNode({ id, data }) {
           </select>
         </div>
 
-        <div className="rf-inline">
-          <span>Parent link</span>
-          <input
-            className="rf-input"
-            value={d.parent || ""}
-            placeholder="base_link"
-            onChange={(e) => edit({ parent: e.target.value })}
-          />
-        </div>
-
-        <div className="rf-inline">
-          <span>Child link</span>
-          <input
-            className="rf-input"
-            value={d.child || ""}
-            placeholder="link1"
-            onChange={(e) => edit({ child: e.target.value })}
-          />
-        </div>
-
-        <div className="rf-inline">
-          <span>Origin xyz</span>
-          {[0, 1, 2].map((k) => (
+        {/* Parent - collapsible */}
+        <div className={`rf-field--collapsible ${isParentConnected ? 'rf-field--collapsed' : ''}`}>
+          <span className="rf-field__label">Parent Link</span>
+          <div className="rf-field__input-wrapper">
             <input
-              key={`xyz-${k}`}
               className="rf-input"
-              type="number"
-              step="any"
-              value={d.origin?.xyz?.[k] ?? 0}
-              onChange={(e) => setOrigin(k, Number(e.target.value))}
+              value={parent}
+              placeholder="base_link"
+              onChange={(e) => onParentChange(e.target.value)}
             />
-          ))}
+          </div>
         </div>
 
-        <div className="rf-inline">
-          <span>Origin rpy</span>
-          {[0, 1, 2].map((k) => (
+        {/* Child - collapsible */}
+        <div className={`rf-field--collapsible ${isChildConnected ? 'rf-field--collapsed' : ''}`}>
+          <span className="rf-field__label">Child Link</span>
+          <div className="rf-field__input-wrapper">
             <input
-              key={`rpy-${k}`}
               className="rf-input"
-              type="number"
-              step="any"
-              value={d.origin?.rpy?.[k] ?? 0}
-              onChange={(e) => setRpy(k, Number(e.target.value))}
+              value={child}
+              placeholder="link1"
+              onChange={(e) => onChildChange(e.target.value)}
             />
-          ))}
+          </div>
         </div>
 
-        <div className="rf-inline">
-          <span>Axis xyz</span>
-          {[0, 1, 2].map((k) => (
-            <input
-              key={`axis-${k}`}
-              className="rf-input"
-              type="number"
-              step="any"
-              value={d.axis?.xyz?.[k] ?? (k === 0 ? 1 : 0)}
-              onChange={(e) => setAxis(k, Number(e.target.value))}
-            />
-          ))}
+        {/* Origin - collapsible */}
+        <div className={`rf-field--collapsible ${isOriginConnected ? 'rf-field--collapsed' : ''}`}>
+          <span className="rf-field__label">Origin Transform</span>
+          <div className="rf-field__input-wrapper">
+            <div style={{ fontSize: "0.85em", opacity: 0.7 }}>
+              xyz: [{origin.xyz.join(', ')}] | rpy: [{origin.rpy.join(', ')}]
+            </div>
+          </div>
+        </div>
+
+        {/* Axis - collapsible */}
+        <div className={`rf-field--collapsible ${isAxisConnected ? 'rf-field--collapsed' : ''}`}>
+          <span className="rf-field__label">Axis</span>
+          <div className="rf-field__input-wrapper">
+            <div style={{ fontSize: "0.85em", opacity: 0.7 }}>
+              [{axis.xyz.join(', ')}]
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* salida: emite el objeto joint por 'out' */}
-      <Handle
+      {/* Input handles */}
+      <HandleWithLabel
+        type="target"
+        position={Position.Left}
+        id="parent"
+        label="parent"
+        color="blue"
+        top="35%"
+      />
+      <HandleWithLabel
+        type="target"
+        position={Position.Left}
+        id="child"
+        label="child"
+        color="blue"
+        top="50%"
+      />
+      <HandleWithLabel
+        type="target"
+        position={Position.Left}
+        id="origin"
+        label="origin"
+        color="purple"
+        top="65%"
+      />
+      <HandleWithLabel
+        type="target"
+        position={Position.Left}
+        id="axis"
+        label="axis"
+        color="green"
+        top="80%"
+      />
+
+      {/* Output handle */}
+      <HandleWithLabel
         type="source"
         position={Position.Right}
         id="out"
-        style={{
-          width: "18px",
-          height: "18px",
-          background: "#2196f3",
-          border: "3px solid #fff"
-        }}
-        title="Connect to Assembly or Robot node"
+        label="joint"
+        color="blue"
       />
     </div>
   );

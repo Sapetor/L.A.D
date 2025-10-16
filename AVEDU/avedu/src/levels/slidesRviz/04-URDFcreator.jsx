@@ -8,10 +8,11 @@ import {
   addEdge,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { nodeTypes, paletteUrdf, paletteUrdfV2, defaultDataFor } from "../../components/blocks";
+import { nodeTypes, paletteCategorized, CategorizedPalette, defaultDataFor } from "../../components/blocks";
 import {
   computeUrdfXml,
   syncUrdfDerived,
@@ -29,6 +30,7 @@ export const meta = {
 function Inner({ onObjectiveHit }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const { screenToFlowPosition } = useReactFlow();
 
   // Derivadas (XML desde el grafo)
   const urdfDeriv = useMemo(() => computeUrdfXml(nodes, edges), [nodes, edges]);
@@ -104,11 +106,12 @@ function Inner({ onObjectiveHit }) {
       evt.preventDefault();
       const t = evt.dataTransfer.getData("application/rf-node");
       if (!t) return;
-      const bounds = evt.currentTarget.getBoundingClientRect();
-      const position = {
-        x: evt.clientX - bounds.left - 80,
-        y: evt.clientY - bounds.top - 20,
-      };
+
+      // Use screenToFlowPosition to properly convert screen coords to flow coords
+      const position = screenToFlowPosition({
+        x: evt.clientX,
+        y: evt.clientY,
+      });
 
       let type = t; // en paletteUrdf vienen tipos directos: urdfLink, urdfJoint, etc.
       setNodes((nds) => [
@@ -121,7 +124,7 @@ function Inner({ onObjectiveHit }) {
         },
       ]);
     },
-    [setNodes, onNodeDataChange]
+    [screenToFlowPosition, setNodes, onNodeDataChange]
   );
 
   const onDragOver = useCallback((evt) => {
@@ -138,46 +141,11 @@ function Inner({ onObjectiveHit }) {
 
   return (
     <div className="rfp-wrap">
-      {/* FRANJA 1: Paleta */}
-      <div className="rfp-palette">
-        <div className="rfp-palette__inner">
-          <div style={{ marginBottom: ".5rem", fontSize: "0.85em", fontWeight: "bold", color: "#666" }}>
-            URDF V2 (Modular - Recommended)
-          </div>
-          {paletteUrdfV2.map((p) => (
-            <div
-              key={p.type}
-              className="rf-chip"
-              draggable
-              title="Arrastra al lienzo"
-              onDragStart={(e) => {
-                e.dataTransfer.setData("application/rf-node", p.type);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-            >
-              {p.label}
-            </div>
-          ))}
-
-          <div style={{ marginTop: "1rem", marginBottom: ".5rem", fontSize: "0.85em", fontWeight: "bold", color: "#666" }}>
-            URDF Classic (Legacy)
-          </div>
-          {paletteUrdf.map((p) => (
-            <div
-              key={p.type}
-              className="rf-chip"
-              draggable
-              title="Arrastra al lienzo"
-              onDragStart={(e) => {
-                e.dataTransfer.setData("application/rf-node", p.type);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-            >
-              {p.label}
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* FRANJA 1: PALETTE */}
+      <CategorizedPalette
+        categories={paletteCategorized}
+        defaultCategory="URDF"
+      />
 
       {/* FRANJA 2: Lienzo */}
       <div className="rfp-canvas">

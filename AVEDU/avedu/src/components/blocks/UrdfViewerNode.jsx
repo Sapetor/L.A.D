@@ -1,22 +1,21 @@
 // components/blocks/UrdfViewerNode.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { Handle, Position } from "@xyflow/react";
+import { Position } from "@xyflow/react";
+import HandleWithLabel from "./HandleWithLabel";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid } from "@react-three/drei";
 import * as THREE from "three";
 import URDFLoader from "urdf-loader";
+import "../../styles/components/_urdfViewerNode.scss";
 
 /**
- * URDF Viewer
- * Renderiza el XML recibido (puerto 'xml') usando urdf-loader y @react-three/fiber.
- * data esperada:
- * { xml?: string }
+ * URDF Viewer - 3D visualization of URDF robot description
+ * Renders XML received via 'xml' handle using urdf-loader and @react-three/fiber
  */
 export default function UrdfViewerNode({ data }) {
   const xml = data?.xml || "";
   const [url, setUrl] = useState(null);
 
-  // Crea un Blob URL cuando cambia el XML
   useEffect(() => {
     if (!xml) {
       setUrl(null);
@@ -29,17 +28,29 @@ export default function UrdfViewerNode({ data }) {
   }, [xml]);
 
   return (
-    <div className="rf-card" style={{ minWidth: 520 }}>
-      <div className="rf-card__title">URDF Viewer</div>
+    <div className="urdf-viewer-node">
+      <div className="rf-card">
+        <div className="rf-card__title">URDF Viewer</div>
 
-      <div className="rf-card__body">
-        <div style={{ width: "100%", height: 360 }}>
-          {url ? <UrdfCanvas url={url} /> : <div className="rf-hint">Conecta el XML del robot para visualizar</div>}
+        <div className="urdf-canvas-container">
+          {url ? (
+            <UrdfCanvas url={url} />
+          ) : (
+            <div className="rf-hint">
+              Connect XML output from Robot node to visualize
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* entrada: recibe xml */}
-      <Handle type="target" position={Position.Left} id="xml" />
+        <HandleWithLabel
+          type="target"
+          position={Position.Left}
+          id="xml"
+          label="xml"
+          color="purple"
+          top="50%"
+        />
+      </div>
     </div>
   );
 }

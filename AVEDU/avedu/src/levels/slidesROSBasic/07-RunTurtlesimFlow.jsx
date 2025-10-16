@@ -7,10 +7,11 @@ import {
   addEdge,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { nodeTypes, paletteRun, defaultDataFor } from "../../components/blocks";
+import { nodeTypes, paletteCategorized, CategorizedPalette, defaultDataFor } from "../../components/blocks";
 import "../../styles/_rosflow.scss";
 
 export const meta = {
@@ -83,6 +84,7 @@ function computeToCodePreview(nodes, edges) {
 function Inner({ onObjectiveHit }) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const { screenToFlowPosition } = useReactFlow();
 
   // Memoizamos derivadas para no recrearlas en cada render
   const runData = useMemo(() => computeRunData(nodes, edges), [nodes, edges]);
@@ -181,8 +183,12 @@ function Inner({ onObjectiveHit }) {
     evt.preventDefault();
     const t = evt.dataTransfer.getData("application/rf-node");
     if (!t) return;
-    const bounds = evt.currentTarget.getBoundingClientRect();
-    const position = { x: evt.clientX - bounds.left - 80, y: evt.clientY - bounds.top - 20 };
+
+    // Use screenToFlowPosition to properly convert screen coords to flow coords
+    const position = screenToFlowPosition({
+      x: evt.clientX,
+      y: evt.clientY,
+    });
 
     let type = t;
     let extra = {};
@@ -198,7 +204,7 @@ function Inner({ onObjectiveHit }) {
       ...nds,
       { id: `n-${Date.now()}`, type, position, data: { ...defaultDataFor(t), onChange: onNodeDataChange, ...extra } },
     ]);
-  }, [setNodes, onNodeDataChange]);
+  }, [screenToFlowPosition, setNodes, onNodeDataChange]);
 
   const onDragOver = useCallback((evt) => { evt.preventDefault(); evt.dataTransfer.dropEffect = "move"; }, []);
 
@@ -207,28 +213,11 @@ function Inner({ onObjectiveHit }) {
 
   return (
     <div className="rfp-wrap">
-      {/* FRANJA 1 */}
-      <div className="rfp-palette">
-        <div className="rfp-palette__inner">
-          <div style={{ marginBottom: ".5rem", fontSize: "0.85em", fontWeight: "bold", color: "#666" }}>
-            ROS Run Blocks
-          </div>
-          {paletteRun.map((p) => (
-            <div
-              key={p.type}
-              className="rf-chip"
-              draggable
-              title="Arrastra al lienzo"
-              onDragStart={(e) => {
-                e.dataTransfer.setData("application/rf-node", p.type);
-                e.dataTransfer.effectAllowed = "move";
-              }}
-            >
-              {p.label}
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* FRANJA 1: PALETTE */}
+      <CategorizedPalette
+        categories={paletteCategorized}
+        defaultCategory="ROS"
+      />
 
       {/* FRANJA 2 */}
       <div className="rfp-canvas">
