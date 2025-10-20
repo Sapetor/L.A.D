@@ -201,10 +201,11 @@
     <!-- Overhead camera looking at the QCar -->
     <model name="overhead_camera">
       <static>true</static>
-      <!-- Position camera above spawn point looking straight down with slight angle -->
+      <!-- Position camera above spawn point looking straight down -->
       <!-- Pose: x y z roll pitch yaw -->
-      <!-- Positioned at (0, -3, 4) looking at origin from south, angled down -->
-      <pose>0 -3 4 0 0.7 1.5708</pose>
+      <!-- Positioned at (0, 0, 8) directly above center, looking straight down -->
+      <!-- pitch=1.5708 (90 degrees) points camera straight down -->
+      <pose>0 0 8 0 1.5708 0</pose>
       <link name="link">
         <visual name="visual">
           <geometry>

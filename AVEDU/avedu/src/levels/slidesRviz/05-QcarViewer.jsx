@@ -40,7 +40,7 @@ function useAutofit(object3D) {
     const center = sphere.center;
     const radius = Math.max(sphere.radius, 0.001);
     const margin = 1.2;
-    const dist = radius * 3 * margin;
+    const dist = radius * 1000 * margin;
 
     camera.position.copy(center.clone().add(new THREE.Vector3(dist, dist * 0.6, dist)));
     camera.near = Math.max(radius / 500, 0.0005);

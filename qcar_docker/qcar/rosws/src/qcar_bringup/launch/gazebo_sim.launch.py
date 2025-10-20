@@ -38,18 +38,20 @@ def generate_launch_description():
     )
 
     # Spawn QCar robot in Gazebo
+    # Position at center of track (0, 0) facing north (Y=0)
+    # Z=0.1 ensures wheels are slightly above ground for stable physics
     spawn_qcar = Node(
         package='gazebo_ros',
         executable='spawn_entity.py',
         arguments=[
             '-entity', 'qcar',
             '-file', urdf_file,
-            '-x', '0.0',
-            '-y', '0.0',
-            '-z', '0.1',
+            '-x', '0.0',      # Center X
+            '-y', '-2.0',     # Slightly south of center to avoid obstacles
+            '-z', '0.1',      # Standard ground clearance
             '-R', '0.0',
             '-P', '0.0',
-            '-Y', '0.0'
+            '-Y', '1.5708'    # 90 degrees - facing east (toward obstacle_1)
         ],
         output='screen'
     )

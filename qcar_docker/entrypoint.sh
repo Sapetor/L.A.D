@@ -57,6 +57,11 @@ mkdir -p /tmp/robot_model
 xacro "${MAIN_XACRO}" ${XACRO_ARGS} > "${TMP_URDF}"
 grep -q "<robot" "${TMP_URDF}" || { echo "[ERROR] URDF inválido"; exit 1; }
 
+# Convert package:// URIs to file:// URIs for Gazebo compatibility
+# This is needed because Gazebo Classic doesn't resolve package:// URIs the same way as ROS 2
+sed -i "s|package://qcar_description/|file://${QCAR_DESC_SHARE}/|g" "${TMP_URDF}"
+echo "[entrypoint] Converted package:// URIs to file:// URIs for Gazebo"
+
 # Copia al package para servir por HTTP
 cp -f "${TMP_URDF}" "${URDF_DIR}/robot_runtime.urdf"
 echo "[entrypoint] URDF HTTP: http://localhost:${STATIC_PORT}/qcar_description/urdf/robot_runtime.urdf"

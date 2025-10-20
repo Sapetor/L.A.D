@@ -5,7 +5,11 @@
       "Bash(docker compose:*)",
       "Bash(docker exec:*)",
       "Bash(timeout 15 docker compose logs -f)",
-      "Bash(curl -I http://169.254.83.107:9090)"
+      "Bash(curl -I http://169.254.83.107:9090)",
+      "Bash(git checkout:*)",
+      "Bash(python manage.py dumpdata learning.Unit learning.Level learning.Objective --indent 2 --output fixtures/initial_data.json)",
+      "Bash(chmod +x installer.sh)",
+      "Bash(git add installer.bat installer.sh INSTALL.md LAD/lad/requirements.txt LAD/lad/fixtures/initial_data.json README.md)"
     ],
     "deny": [],
     "ask": []
