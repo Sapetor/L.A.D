@@ -13,6 +13,7 @@ import UrdfJointNode from "./UrdfJointNode";
 import UrdfRobotNode from "./UrdfRobotNode";
 import UrdfPreviewNode from "./UrdfPreviewNode";
 import UrdfViewerNode from "./UrdfViewerNode";
+import UrdfControlNode from "./UrdfControlNode";
 
 // URDF blocks V2 (modular/improved)
 import UrdfLinkNodeV2 from "./UrdfLinkNodeV2";
@@ -45,6 +46,7 @@ export const nodeTypes = {
   urdfRobot: UrdfRobotNode,
   urdfPreview: UrdfPreviewNode,
   urdfViewer: UrdfViewerNode,
+  urdfControl: UrdfControlNode,
 
   // URDF V2 (modular/improved)
   urdfLinkV2: UrdfLinkNodeV2,
@@ -128,6 +130,7 @@ export const paletteCategorized = {
   ],
   Visualization: [
     { type: "urdfViewer", label: "URDF 3D Viewer" },
+    { type: "urdfControl", label: "Joint Controller" },
   ],
 };
 
@@ -198,6 +201,9 @@ export function defaultDataFor(typeOrPreset) {
     return { id: "", xml: "" };
 
   if (typeOrPreset === "urdfViewer")
+    return { id: "", xml: "" };
+
+  if (typeOrPreset === "urdfControl")
     return { id: "", xml: "" };
 
   // -------- URDF V2 (modular) --------

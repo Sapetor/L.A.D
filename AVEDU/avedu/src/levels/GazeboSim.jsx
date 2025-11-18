@@ -2,6 +2,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import GazeboSimulator from "../components/gazebo/GazeboSimulator";
 import ClientSideGazeboSimulator from "../components/gazebo/ClientSideGazeboSimulator";
+import RVizSimulator from "../components/gazebo/RVizSimulator";
 
 /** =========================================
  *  Auto-import of intro slides
@@ -43,7 +44,7 @@ export default function GazeboSim({ onObjectiveHit, onLevelCompleted }) {
   const total = slides.length;
   const [idx, setIdx] = useState(0);
   const [showSimulator, setShowSimulator] = useState(false);
-  const [useClientSide, setUseClientSide] = useState(true); // Toggle between client-side and streaming
+  const [simulatorMode, setSimulatorMode] = useState('rviz'); // 'rviz', 'client-side', or 'streaming'
 
   const go = useCallback(
     (delta) => setIdx((i) => Math.max(0, Math.min(total - 1, i + delta))),
@@ -91,17 +92,19 @@ export default function GazeboSim({ onObjectiveHit, onLevelCompleted }) {
               opacity: 0.7,
               fontWeight: "normal"
             }}>
-              ({useClientSide ? "Client-Side Rendering" : "ROS Streaming"})
+              ({simulatorMode === 'rviz' ? "RViz Mode" : simulatorMode === 'client-side' ? "Client-Side 3D" : "ROS Streaming"})
             </span>
           </h2>
           <div style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
             <button
               className="btn"
-              onClick={() => setUseClientSide(!useClientSide)}
+              onClick={() => setSimulatorMode(prev =>
+                prev === 'rviz' ? 'client-side' : prev === 'client-side' ? 'streaming' : 'rviz'
+              )}
               style={{ padding: ".5rem 1rem", fontSize: ".85rem" }}
-              title="Toggle between client-side 3D rendering and ROS camera streaming"
+              title="Cycle between RViz, Client-Side 3D, and ROS Streaming modes"
             >
-              {useClientSide ? "📹 Switch to Streaming" : "🎮 Switch to 3D"}
+              {simulatorMode === 'rviz' ? "🔄 → 3D Mode" : simulatorMode === 'client-side' ? "🔄 → Streaming" : "🔄 → RViz"}
             </button>
             <button
               className="btn"
@@ -113,7 +116,12 @@ export default function GazeboSim({ onObjectiveHit, onLevelCompleted }) {
           </div>
         </div>
 
-        {useClientSide ? (
+        {simulatorMode === 'rviz' ? (
+          <RVizSimulator
+            onObjectiveHit={onObjectiveHit}
+            onLevelCompleted={onLevelCompleted}
+          />
+        ) : simulatorMode === 'client-side' ? (
           <ClientSideGazeboSimulator
             onObjectiveHit={onObjectiveHit}
             onLevelCompleted={onLevelCompleted}

@@ -3,6 +3,7 @@ import Home from './pages/Home';
 import Learn from './pages/Learn';
 import UnitPage from './pages/UnitPage';
 import LearnLevel from './pages/LearnLevel';
+import IDETestPage from './pages/IDETestPage';
 
 export default function App() {
   return (
@@ -16,6 +17,8 @@ export default function App() {
           <Route path=":levelSlug" element={<LearnLevel />} />
         </Route>
       </Route>
+
+      <Route path="/research" element={<IDETestPage />} />
 
       <Route path="*" element={<Navigate to="/learn" replace />} />
     </Routes>

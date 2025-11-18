@@ -1,0 +1,164 @@
+// components/ide/Terminal.scss
+
+.terminal {
+  width: 100%;
+  height: 100%;
+  background: #0b1020;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+
+  // Xterm.js container styling
+  :global {
+    .xterm {
+      height: 100%;
+      padding: 0.75rem;
+    }
+
+    .xterm-viewport {
+      background-color: transparent !important;
+
+      &::-webkit-scrollbar {
+        width: 10px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.2);
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(125, 249, 255, 0.3);
+        border-radius: 5px;
+
+        &:hover {
+          background: rgba(125, 249, 255, 0.5);
+        }
+      }
+    }
+
+    .xterm-screen {
+      background-color: transparent !important;
+    }
+
+    // Selection styling
+    .xterm-selection div {
+      background-color: rgba(125, 249, 255, 0.3) !important;
+    }
+  }
+}
+
+// Fallback message when xterm is not installed
+.terminal-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #e6f1ff;
+
+  &__content {
+    max-width: 600px;
+    text-align: center;
+
+    h3 {
+      color: #7df9ff;
+      margin: 0 0 1rem;
+      font-size: 1.5rem;
+      text-shadow: 0 0 10px rgba(125, 249, 255, 0.5);
+    }
+
+    p {
+      margin: 1rem 0;
+      color: #9fb3c8;
+      line-height: 1.6;
+    }
+
+    pre {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(125, 249, 255, 0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+      color: #7df9ff;
+      font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+
+    code {
+      background: rgba(125, 249, 255, 0.1);
+      border: 1px solid rgba(125, 249, 255, 0.2);
+      border-radius: 4px;
+      padding: 0.2rem 0.4rem;
+      color: #ff5cf4;
+      font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+      font-size: 0.85em;
+    }
+  }
+
+  &__features {
+    margin-top: 2rem;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 1.5rem;
+
+    h4 {
+      color: #ff5cf4;
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+
+      li {
+        padding: 0.5rem 0;
+        color: #9fb3c8;
+        font-size: 0.95rem;
+
+        &::before {
+          content: "";
+          display: inline-block;
+          width: 6px;
+          height: 6px;
+          background: #7df9ff;
+          border-radius: 50%;
+          margin-right: 0.75rem;
+          box-shadow: 0 0 4px rgba(125, 249, 255, 0.6);
+        }
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .terminal {
+    :global {
+      .xterm {
+        padding: 0.5rem;
+        font-size: 12px;
+      }
+    }
+  }
+
+  .terminal-fallback {
+    padding: 1rem;
+
+    &__content {
+      h3 {
+        font-size: 1.2rem;
+      }
+
+      pre {
+        font-size: 0.8rem;
+        padding: 0.75rem;
+      }
+    }
+  }
+}

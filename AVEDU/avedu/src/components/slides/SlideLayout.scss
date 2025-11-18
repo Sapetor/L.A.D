@@ -260,6 +260,104 @@
   }
 }
 
+/* ====== Range Slider (Custom Neon Style) ====== */
+.slide-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+
+  &__label {
+    min-width: 105px;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+  }
+
+  &__value {
+    color: var(--neon);
+    font-weight: 600;
+  }
+
+  &__input {
+    flex: 1;
+    height: 3px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    // Webkit browsers (Chrome, Safari, Edge)
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      background: var(--neon);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(125, 249, 255, 0.6), 0 0 2px rgba(125, 249, 255, 0.8);
+      transition: all 0.15s ease;
+
+      &:hover {
+        transform: scale(1.15);
+        box-shadow: 0 0 12px rgba(125, 249, 255, 0.8), 0 0 4px rgba(125, 249, 255, 1);
+      }
+
+      &:active {
+        transform: scale(1.05);
+      }
+    }
+
+    // Firefox
+    &::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: var(--neon);
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(125, 249, 255, 0.6), 0 0 2px rgba(125, 249, 255, 0.8);
+      transition: all 0.15s ease;
+
+      &:hover {
+        transform: scale(1.15);
+        box-shadow: 0 0 12px rgba(125, 249, 255, 0.8), 0 0 4px rgba(125, 249, 255, 1);
+      }
+
+      &:active {
+        transform: scale(1.05);
+      }
+    }
+
+    // Firefox track
+    &::-moz-range-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      height: 3px;
+    }
+  }
+}
+
+/* ====== Slider Controls Container ====== */
+.slide-controls {
+  padding: 0.65rem;
+  background: rgba(10, 14, 26, 0.6);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  gap: 0.4rem;
+}
+
 /* ====== Utility Classes ====== */
 .slide-muted {
   opacity: 0.8;

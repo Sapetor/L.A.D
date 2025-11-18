@@ -34,6 +34,7 @@ INSTALLED_APPS = [
 
     # Local
     "apps.learning.apps.LearningConfig",
+    "workspace.apps.WorkspaceConfig",
 ]
 
 REST_FRAMEWORK = {

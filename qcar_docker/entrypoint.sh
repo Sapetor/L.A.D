@@ -47,9 +47,12 @@ else
 fi
 
 # Update CORS_ALLOW_ORIGIN if not user-defined
+# Always include localhost, 127.0.0.1, and detected IP for comprehensive CORS support
 if [ "${USER_DEFINED_CORS_FLAG}" != "x" ]; then
   if [ -n "${EXPOSED_IP}" ]; then
-    CORS_ALLOW_ORIGIN="http://${EXPOSED_IP}:3000"
+    CORS_ALLOW_ORIGIN="http://localhost:3000,http://127.0.0.1:3000,http://${EXPOSED_IP}:3000"
+  else
+    CORS_ALLOW_ORIGIN="http://localhost:3000,http://127.0.0.1:3000"
   fi
 fi
 
@@ -83,7 +86,9 @@ fi
 # So we use relative path: ../meshes/ (go up from urdf/ to qcar_description/, then into meshes/)
 WEB_URDF="${URDF_DIR}/robot_runtime.urdf"
 cp "${TMP_URDF}" "${WEB_URDF}"
+# Replace both package:// URIs and file:// absolute paths with relative paths
 sed -i "s|package://qcar_description/meshes/|../meshes/|g" "${WEB_URDF}"
+sed -i "s|file://${QCAR_DESC_SHARE}/meshes/|../meshes/|g" "${WEB_URDF}"
 echo "[entrypoint] Created web URDF with relative mesh paths (../meshes/)"
 echo "[entrypoint] Web URDF: ${MESH_BASE_URL}urdf/robot_runtime.urdf"
 

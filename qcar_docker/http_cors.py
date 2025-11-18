@@ -5,15 +5,24 @@ class CORS(SimpleHTTPRequestHandler):
     def _allow_origin(self):
         allow = os.environ.get("CORS_ALLOW_ORIGIN", "*")
         origin = self.headers.get("Origin")
-        if allow == "*" or not origin:
-            # si es '*' devolvemos '*' ; si no hay Origin devolvemos el primero como valor por defecto
-            self.send_header("Access-Control-Allow-Origin", "*" if allow == "*" else allow.split(",")[0].strip())
+
+        # If wildcard is set, always return wildcard
+        if allow == "*":
+            self.send_header("Access-Control-Allow-Origin", "*")
             return True
+
+        # If no Origin header (like curl), return wildcard for simplicity
+        if not origin:
+            self.send_header("Access-Control-Allow-Origin", "*")
+            return True
+
+        # Check if the origin is in the allowed list
         allowed = [o.strip() for o in allow.split(",") if o.strip()]
         if origin in allowed:
             self.send_header("Access-Control-Allow-Origin", origin)
             return True
-        # origen no permitido: no enviamos la cabecera para que el navegador bloquee
+
+        # Origin not allowed: don't send header so browser blocks
         try:
             print(f"[CORS] Origin no permitido: {origin} (permitidos: {allowed})", file=sys.stderr)
         except Exception:

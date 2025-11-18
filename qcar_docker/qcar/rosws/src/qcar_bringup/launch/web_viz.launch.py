@@ -34,7 +34,8 @@ def generate_launch_description():
     # HTTP estático con CORS (sirve /share, por lo tanto /qcar_description/...)
     http = ExecuteProcess(
         cmd=['python3', '-u', '/http_cors.py', '--dir', static_root, '--port', static_port],
-        output='screen'
+        output='screen',
+        additional_env={'CORS_ALLOW_ORIGIN': cors_origin}
     )
 
     rosbridge = ExecuteProcess(
@@ -104,8 +105,10 @@ def generate_launch_description():
     )
 
     turtlesim = ExecuteProcess(
-        cmd=['bash', '-lc', 'xvfb-run -s "-screen 0 800x600x24" ros2 run turtlesim turtlesim_node'],
-        output='screen', condition=IfCondition(enable_turtle)
+        cmd=['ros2', 'run', 'turtlesim', 'turtlesim_node'],
+        output='screen',
+        condition=IfCondition(enable_turtle),
+        additional_env={'DISPLAY': ':99'}  # Use the same Xvfb display as Gazebo
     )
 
     # Gazebo simulation (headless mode for Docker)

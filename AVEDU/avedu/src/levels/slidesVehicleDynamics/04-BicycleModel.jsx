@@ -1,5 +1,6 @@
 // src/levels/slidesVehicleDynamics/04-BicycleModel.jsx
 import React, { useState, useRef, useEffect } from "react";
+import "../../components/slides/SlideLayout.scss";
 
 export const meta = {
   id: "vd-bicycle",
@@ -58,26 +59,26 @@ function BicycleModelVisualization({ lf, lr, delta, beta, v, showVelocities }) {
     ctx.lineTo(0, lr * scale);
     ctx.stroke();
 
-    // Front wheel
+    // Front wheel (pointing forward, rotated by steering angle)
     const frontY = -lf * scale;
     ctx.strokeStyle = "#ff5cf4";
     ctx.lineWidth = 4;
     ctx.save();
     ctx.translate(0, frontY);
-    ctx.rotate(deltaRad);
+    ctx.rotate(deltaRad);  // Rotate by steering angle
     ctx.beginPath();
-    ctx.moveTo(-15, 0);
-    ctx.lineTo(15, 0);
+    ctx.moveTo(0, -15);  // Vertical orientation (pointing forward)
+    ctx.lineTo(0, 15);
     ctx.stroke();
     ctx.restore();
 
-    // Rear wheel
+    // Rear wheel (pointing forward, no rotation)
     const rearY = lr * scale;
     ctx.strokeStyle = "#7df9ff";
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(-15, rearY);
-    ctx.lineTo(15, rearY);
+    ctx.moveTo(0, rearY - 15);  // Vertical orientation
+    ctx.lineTo(0, rearY + 15);
     ctx.stroke();
 
     // Center of gravity (CG)
@@ -113,27 +114,27 @@ function BicycleModelVisualization({ lf, lr, delta, beta, v, showVelocities }) {
       ctx.font = "11px monospace";
       ctx.fillText("V", vScale + 5, -5);
 
-      // Front wheel velocity
+      // Front wheel velocity (aligned with wheel orientation)
       ctx.save();
       ctx.translate(0, frontY);
-      ctx.rotate(deltaRad);
+      ctx.rotate(deltaRad);  // Rotate by steering angle
 
       ctx.strokeStyle = "#ff5cf4";
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(vScale * 0.8, 0);
+      ctx.lineTo(0, -vScale * 0.8);  // Vertical, pointing forward (negative Y)
       ctx.stroke();
 
       ctx.fillStyle = "#ff5cf4";
       ctx.beginPath();
-      ctx.moveTo(vScale * 0.8, 0);
-      ctx.lineTo(vScale * 0.8 - 6, -4);
-      ctx.lineTo(vScale * 0.8 - 6, 4);
+      ctx.moveTo(0, -vScale * 0.8);
+      ctx.lineTo(-4, -vScale * 0.8 + 6);
+      ctx.lineTo(4, -vScale * 0.8 + 6);
       ctx.closePath();
       ctx.fill();
 
-      ctx.fillText("Vf", vScale * 0.8 + 5, -5);
+      ctx.fillText("Vf", 5, -vScale * 0.8 + 5);
       ctx.restore();
     }
 
@@ -258,9 +259,11 @@ Where:
 
           <div className="slide-card" style={{ marginTop: ".75rem" }}>
             <div className="slide-card__title">Interactive Controls</div>
-            <div style={{ display: "grid", gap: ".5rem" }}>
-              <label style={{ display: "grid", gap: ".25rem" }}>
-                <span>lf (front): {lf.toFixed(1)} m</span>
+            <div className="slide-controls">
+              <div className="slide-slider">
+                <span className="slide-slider__label">
+                  lf (front): <span className="slide-slider__value">{lf.toFixed(1)}m</span>
+                </span>
                 <input
                   type="range"
                   min="0.8"
@@ -268,12 +271,14 @@ Where:
                   step="0.1"
                   value={lf}
                   onChange={(e) => setLf(Number(e.target.value))}
-                  style={{ width: "100%" }}
+                  className="slide-slider__input"
                 />
-              </label>
+              </div>
 
-              <label style={{ display: "grid", gap: ".25rem" }}>
-                <span>lr (rear): {lr.toFixed(1)} m</span>
+              <div className="slide-slider">
+                <span className="slide-slider__label">
+                  lr (rear): <span className="slide-slider__value">{lr.toFixed(1)}m</span>
+                </span>
                 <input
                   type="range"
                   min="0.8"
@@ -281,12 +286,14 @@ Where:
                   step="0.1"
                   value={lr}
                   onChange={(e) => setLr(Number(e.target.value))}
-                  style={{ width: "100%" }}
+                  className="slide-slider__input"
                 />
-              </label>
+              </div>
 
-              <label style={{ display: "grid", gap: ".25rem" }}>
-                <span>Steering Angle δ: {delta.toFixed(1)}°</span>
+              <div className="slide-slider">
+                <span className="slide-slider__label">
+                  Steering δ: <span className="slide-slider__value">{delta.toFixed(1)}°</span>
+                </span>
                 <input
                   type="range"
                   min="-30"
@@ -294,12 +301,14 @@ Where:
                   step="0.5"
                   value={delta}
                   onChange={(e) => setDelta(Number(e.target.value))}
-                  style={{ width: "100%" }}
+                  className="slide-slider__input"
                 />
-              </label>
+              </div>
 
-              <label style={{ display: "grid", gap: ".25rem" }}>
-                <span>Sideslip Angle β: {beta.toFixed(1)}°</span>
+              <div className="slide-slider">
+                <span className="slide-slider__label">
+                  Sideslip β: <span className="slide-slider__value">{beta.toFixed(1)}°</span>
+                </span>
                 <input
                   type="range"
                   min="-15"
@@ -307,12 +316,14 @@ Where:
                   step="0.5"
                   value={beta}
                   onChange={(e) => setBeta(Number(e.target.value))}
-                  style={{ width: "100%" }}
+                  className="slide-slider__input"
                 />
-              </label>
+              </div>
 
-              <label style={{ display: "grid", gap: ".25rem" }}>
-                <span>Velocity: {velocity.toFixed(1)} m/s</span>
+              <div className="slide-slider">
+                <span className="slide-slider__label">
+                  Velocity: <span className="slide-slider__value">{velocity.toFixed(1)} m/s</span>
+                </span>
                 <input
                   type="range"
                   min="0"
@@ -320,11 +331,11 @@ Where:
                   step="1"
                   value={velocity}
                   onChange={(e) => setVelocity(Number(e.target.value))}
-                  style={{ width: "100%" }}
+                  className="slide-slider__input"
                 />
-              </label>
+              </div>
 
-              <label style={{ display: "flex", gap: ".5rem", alignItems: "center" }}>
+              <label style={{ display: "flex", gap: ".5rem", alignItems: "center", fontSize: "11px", padding: ".25rem 0" }}>
                 <input
                   type="checkbox"
                   checked={showVelocities}
@@ -333,10 +344,10 @@ Where:
                 <span>Show velocity vectors</span>
               </label>
 
-              <div className="slide-code" style={{ fontSize: "0.85rem", padding: ".4rem" }}>
-                Wheelbase L = <b>{L.toFixed(2)} m</b>
+              <div className="slide-code" style={{ fontSize: "11px", padding: ".4rem" }}>
+                Wheelbase L = <b style={{ color: "#7df9ff" }}>{L.toFixed(2)} m</b>
                 <br />
-                Yaw rate: <b>{((velocity / L) * Math.tan(delta * Math.PI / 180)).toFixed(3)} rad/s</b>
+                Yaw rate: <b style={{ color: "#ff5cf4" }}>{((velocity / L) * Math.tan(delta * Math.PI / 180)).toFixed(3)} rad/s</b>
               </div>
             </div>
           </div>

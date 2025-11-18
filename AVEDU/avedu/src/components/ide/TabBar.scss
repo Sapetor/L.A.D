@@ -1,0 +1,199 @@
+// components/ide/TabBar.scss
+
+:root {
+  --tab-bg: rgba(0, 0, 0, 0.3);
+  --tab-bg-active: rgba(125, 249, 255, 0.1);
+  --tab-border: rgba(255, 255, 255, 0.12);
+  --tab-border-active: rgba(125, 249, 255, 0.4);
+  --tab-text: #e6f1ff;
+  --tab-text-muted: #9fb3c8;
+  --tab-hover: rgba(125, 249, 255, 0.05);
+}
+
+.tab-bar {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid var(--tab-border);
+  overflow: hidden;
+
+  &__tabs {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+
+    // Hide scrollbar but keep functionality
+    scrollbar-width: thin;
+    scrollbar-color: rgba(125, 249, 255, 0.3) transparent;
+
+    &::-webkit-scrollbar {
+      height: 3px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(125, 249, 255, 0.3);
+      border-radius: 2px;
+
+      &:hover {
+        background: rgba(125, 249, 255, 0.5);
+      }
+    }
+  }
+
+  &__new {
+    appearance: none;
+    background: rgba(125, 249, 255, 0.08);
+    border: none;
+    border-left: 1px solid var(--tab-border);
+    color: rgba(125, 249, 255, 0.8);
+    padding: 0.6rem 1rem;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+
+    &:hover {
+      background: rgba(125, 249, 255, 0.15);
+      color: #7df9ff;
+    }
+  }
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--tab-bg);
+  border-right: 1px solid var(--tab-border);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  min-width: 120px;
+  max-width: 200px;
+  flex-shrink: 0;
+  user-select: none;
+
+  // Bottom border for active state
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: transparent;
+    transition: background 0.2s ease;
+  }
+
+  &:hover {
+    background: var(--tab-hover);
+
+    .tab__close {
+      opacity: 1;
+    }
+  }
+
+  &--active {
+    background: var(--tab-bg-active);
+    border-bottom-color: transparent;
+
+    &::after {
+      background: linear-gradient(90deg, #7df9ff, #ff5cf4);
+      box-shadow: 0 0 8px rgba(125, 249, 255, 0.5);
+    }
+
+    .tab__name {
+      color: #7df9ff;
+      font-weight: 600;
+    }
+
+    .tab__close {
+      opacity: 1;
+    }
+  }
+
+  &__icon {
+    font-size: 1rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  &__name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--tab-text);
+    font-size: 0.85rem;
+    transition: color 0.15s ease;
+  }
+
+  &__badge {
+    color: #ff5cf4;
+    font-size: 1rem;
+    line-height: 1;
+    flex-shrink: 0;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  &__close {
+    appearance: none;
+    background: transparent;
+    border: none;
+    color: var(--tab-text-muted);
+    padding: 0.2rem;
+    font-size: 0.9rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+    opacity: 0;
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 92, 92, 0.2);
+      color: #ff5c5c;
+    }
+  }
+}
+
+// Pulse animation for unsaved badge
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .tab {
+    min-width: 100px;
+    max-width: 150px;
+    padding: 0.5rem 0.6rem;
+
+    &__name {
+      font-size: 0.8rem;
+    }
+
+    &__close {
+      opacity: 1; // Always show on mobile
+    }
+  }
+
+  .tab-bar__new {
+    padding: 0.5rem 0.75rem;
+  }
+}

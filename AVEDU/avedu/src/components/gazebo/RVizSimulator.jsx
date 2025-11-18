@@ -1,27 +1,18 @@
-// src/components/gazebo/ClientSideGazeboSimulator.jsx
-import React, { useRef, useEffect, useState, useMemo } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Grid, Sky, Stats } from '@react-three/drei';
+// src/components/gazebo/RVizSimulator.jsx
+import React, { useRef, useEffect, useState } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Grid, Sky, Stats } from '@react-three/drei';
 import * as THREE from 'three';
 import { useRoslib } from '../../hooks/useRoslib';
 import URDFLoader from 'urdf-loader';
-import VirtualCamera from './VirtualCamera';
-import CameraViewGrid from './CameraViewGrid';
 import { getStaticBase } from '../../ip';
 import '../../styles/components/_gazebo.scss';
-import '../../styles/components/_camera-grid.scss';
 
 /**
- * ClientSideGazeboSimulator - Renders simulation entirely in React/Three.js
+ * RVizSimulator - Pure visualization using ROS topics (no Gazebo physics)
  *
- * This component renders the robot and environment client-side for smooth 60 FPS,
- * while still using ROS for physics, control, and sensor data.
- *
- * Architecture:
- * - Three.js renders the visual scene
- * - ROS provides odometry, joint states, and sensor data
- * - User controls publish to /cmd_vel
- * - No camera image streaming needed (rendered locally)
+ * This mimics RViz behavior: visualizes robot state from /tf and /odom topics
+ * without requiring Gazebo physics simulation.
  */
 
 /**
@@ -31,6 +22,7 @@ function Robot({ urdfPath, position, orientation, jointStates }) {
   const robotRef = useRef();
   const urdfContainerRef = useRef();
   const [robot, setRobot] = useState(null);
+  const [trailPoints, setTrailPoints] = useState([]);
 
   // Load URDF model
   useEffect(() => {
@@ -40,7 +32,7 @@ function Robot({ urdfPath, position, orientation, jointStates }) {
     loader.load(
       urdfPath,
       (urdfRobot) => {
-        console.log('[Robot] URDF loaded successfully', urdfRobot);
+        console.log('[RViz] URDF loaded successfully', urdfRobot);
 
         // Set up materials for better visualization
         urdfRobot.traverse((child) => {
@@ -60,7 +52,7 @@ function Robot({ urdfPath, position, orientation, jointStates }) {
       },
       undefined,
       (error) => {
-        console.error('[Robot] Error loading URDF:', error);
+        console.error('[RViz] Error loading URDF:', error);
       }
     );
   }, [urdfPath]);
@@ -73,6 +65,14 @@ function Robot({ urdfPath, position, orientation, jointStates }) {
 
       // Apply yaw rotation only (rotation around vertical axis)
       robotRef.current.rotation.y = orientation.yaw * Math.PI / 180;
+
+      // Add trail point
+      if (Math.random() < 0.1) { // Only add occasionally to avoid too many points
+        setTrailPoints(prev => {
+          const newPoints = [...prev, { x: position.x, y: position.z, z: position.y }];
+          return newPoints.slice(-50); // Keep last 50 points
+        });
+      }
     }
 
     // Update joint states if available
@@ -90,24 +90,40 @@ function Robot({ urdfPath, position, orientation, jointStates }) {
     return (
       <mesh ref={robotRef} position={[position?.x || 0, (position?.z || 0) + 0.1, position?.y || 0]}>
         <boxGeometry args={[0.4, 0.15, 0.2]} />
-        <meshStandardMaterial color="#ff6b6b" />
+        <meshStandardMaterial color="#7df9ff" emissive="#7df9ff" emissiveIntensity={0.2} />
       </mesh>
     );
   }
 
   // Wrap URDF in a group for coordinate system conversion
   return (
-    <group ref={robotRef}>
-      <group ref={urdfContainerRef} rotation={[-Math.PI / 2, 0, 0]}>
-        <primitive object={robot} />
+    <>
+      <group ref={robotRef}>
+        <group ref={urdfContainerRef} rotation={[-Math.PI / 2, 0, 0]}>
+          <primitive object={robot} />
+        </group>
       </group>
-    </group>
+
+      {/* Path trail */}
+      {trailPoints.length > 1 && (
+        <line>
+          <bufferGeometry>
+            <bufferAttribute
+              attach="attributes-position"
+              count={trailPoints.length}
+              array={new Float32Array(trailPoints.flatMap(p => [p.x, p.y, p.z]))}
+              itemSize={3}
+            />
+          </bufferGeometry>
+          <lineBasicMaterial color="#7df9ff" linewidth={2} />
+        </line>
+      )}
+    </>
   );
 }
 
-
 /**
- * Environment - Ground plane, obstacles, lighting
+ * Environment - Ground plane, axes, lighting
  */
 function Environment() {
   return (
@@ -150,30 +166,16 @@ function Environment() {
         <meshStandardMaterial color="#1a1a1a" />
       </mesh>
 
-      {/* Sample obstacles */}
-      <mesh position={[3, 0, 0.5]} castShadow>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial color="#ef4444" />
-      </mesh>
-
-      <mesh position={[-2, 3, 0.3]} castShadow>
-        <cylinderGeometry args={[0.3, 0.3, 0.6, 16]} />
-        <meshStandardMaterial color="#3b82f6" />
-      </mesh>
-
-      <mesh position={[0, -4, 0.75]} castShadow>
-        <boxGeometry args={[2, 0.5, 1.5]} />
-        <meshStandardMaterial color="#10b981" />
-      </mesh>
+      {/* Coordinate axes (RViz style) */}
+      <primitive object={new THREE.AxesHelper(2)} />
     </>
   );
 }
 
-
 /**
- * Main ClientSideGazeboSimulator Component
+ * Main RVizSimulator Component
  */
-export default function ClientSideGazeboSimulator({ onObjectiveHit }) {
+export default function RVizSimulator({ onObjectiveHit }) {
   const { ros, connected, subscribeTopic, advertise } = useRoslib();
 
   // Robot state
@@ -182,13 +184,8 @@ export default function ClientSideGazeboSimulator({ onObjectiveHit }) {
   const [velocity, setVelocity] = useState({ linear: 0, angular: 0 });
   const [jointStates, setJointStates] = useState({});
 
-  // Camera state
-  const [cameraTextures, setCameraTextures] = useState({});
-
-  // Handle camera texture updates
-  const handleCameraFrame = (texture, cameraName) => {
-    setCameraTextures(prev => ({ ...prev, [cameraName]: texture }));
-  };
+  // Use ref to track current orientation for physics simulation
+  const orientationRef = useRef({ roll: 0, pitch: 0, yaw: 0 });
 
   // Control
   const [cmdVelPublisher, setCmdVelPublisher] = useState(null);
@@ -202,7 +199,7 @@ export default function ClientSideGazeboSimulator({ onObjectiveHit }) {
     if (connected && !cmdVelPublisher) {
       const pub = advertise('/qcar/cmd_vel', 'geometry_msgs/Twist');
       setCmdVelPublisher(pub);
-      console.log('[ClientSideGazebo] cmd_vel publisher ready');
+      console.log('[RViz] cmd_vel publisher ready');
     }
   }, [connected, advertise, cmdVelPublisher]);
 
@@ -226,11 +223,13 @@ export default function ClientSideGazeboSimulator({ onObjectiveHit }) {
         const pitch = Math.asin(2 * (q.w * q.y - q.z * q.x));
         const yaw = Math.atan2(2 * (q.w * q.z + q.x * q.y), 1 - 2 * (q.y * q.y + q.z * q.z));
 
-        setOrientation({
+        const newOrientation = {
           roll: roll * 180 / Math.PI,
           pitch: pitch * 180 / Math.PI,
           yaw: yaw * 180 / Math.PI,
-        });
+        };
+        setOrientation(newOrientation);
+        orientationRef.current = newOrientation;
 
         setVelocity({
           linear: msg.twist.twist.linear.x,
@@ -282,7 +281,7 @@ export default function ClientSideGazeboSimulator({ onObjectiveHit }) {
     };
   }, []);
 
-  // Publish velocity based on keyboard input
+  // Publish velocity based on keyboard input AND simulate movement
   useEffect(() => {
     if (!cmdVelPublisher) return;
 
@@ -296,15 +295,50 @@ export default function ClientSideGazeboSimulator({ onObjectiveHit }) {
       if (keyPressed['d'] || keyPressed['arrowright']) angular -= 1.0;
       if (keyPressed[' ']) { linear = 0; angular = 0; }
 
-      // Only publish if there's movement or we need to stop
-      if (linear !== 0 || angular !== 0) {
-        console.log('[ClientSideGazebo] Publishing cmd_vel:', { linear, angular });
-      }
-
+      // Publish to ROS
       cmdVelPublisher.publish({
         linear: { x: linear, y: 0, z: 0 },
         angular: { x: 0, y: 0, z: angular },
       });
+
+      // SIMULATE MOVEMENT LOCALLY (since Gazebo physics isn't working)
+      if (linear !== 0 || angular !== 0) {
+        const dt = 0.1; // 100ms interval
+
+        // Get current yaw from ref (stable, doesn't cause re-renders)
+        const currentYawRad = orientationRef.current.yaw * Math.PI / 180;
+
+        // Update position based on current orientation
+        // ROS: X-forward, Y-left, Z-up; Yaw is rotation around Z (0° = facing +X direction)
+        const dx = linear * Math.cos(currentYawRad) * dt;
+        const dy = linear * Math.sin(currentYawRad) * dt;
+
+        setPosition(prev => {
+          const newPos = {
+            x: prev.x + dx,
+            y: prev.y + dy,
+            z: prev.z,
+          };
+          console.log('[RViz Physics]', {
+            yaw: orientationRef.current.yaw.toFixed(1),
+            linear, angular,
+            dx: dx.toFixed(3), dy: dy.toFixed(3),
+            newX: newPos.x.toFixed(3), newY: newPos.y.toFixed(3)
+          });
+          return newPos;
+        });
+
+        // Update orientation for next iteration
+        const newYaw = (orientationRef.current.yaw + angular * dt * 180 / Math.PI) % 360;
+        const newOrientation = {
+          ...orientationRef.current,
+          yaw: newYaw,
+        };
+        setOrientation(newOrientation);
+        orientationRef.current = newOrientation;
+
+        setVelocity({ linear, angular });
+      }
     }, 100);
 
     return () => clearInterval(interval);
@@ -315,7 +349,7 @@ export default function ClientSideGazeboSimulator({ onObjectiveHit }) {
       {/* Connection Status */}
       <div className={`gazebo-status ${connected ? 'connected' : 'disconnected'}`}>
         <span className="status-dot" />
-        <span>{connected ? 'ROS Connected - Client-Side Rendering' : 'Connecting...'}</span>
+        <span>{connected ? 'ROS Connected - RViz Visualization' : 'Connecting...'}</span>
       </div>
 
       {/* Main 3D Viewport */}
@@ -329,29 +363,15 @@ export default function ClientSideGazeboSimulator({ onObjectiveHit }) {
             jointStates={jointStates}
           />
 
-          {/* Virtual cameras for each view */}
-          {['rgb', 'front', 'right', 'back', 'left'].map((camName) => (
-            <VirtualCamera
-              key={camName}
-              cameraName={camName}
-              robotPosition={position}
-              robotOrientation={orientation}
-              onFrameRendered={handleCameraFrame}
-            />
-          ))}
-
           <OrbitControls
             enablePan
             enableZoom
             enableRotate
-            target={[position.x, position.y, position.z]}
+            target={[position.x, position.z, position.y]}
           />
           <Stats />
         </Canvas>
       </div>
-
-      {/* Camera Grid Display */}
-      <CameraViewGrid cameraTextures={cameraTextures} />
 
       {/* Robot Telemetry */}
       <div className="gazebo-telemetry">

@@ -21,6 +21,10 @@ export default function Home() {
     navigate("/Learn");
   }
 
+  function handleResearch() {
+    navigate("/research");
+  }
+
   return (
     <div className="screen">
       <div className="overlay overlay--scan" />
@@ -44,7 +48,7 @@ export default function Home() {
                 onClick={() => setMode("login")}
                 aria-pressed={mode === "login"}
               >
-                Iniciar sesión
+                Log in
               </button>
               <button
                 type="button"
@@ -52,7 +56,7 @@ export default function Home() {
                 onClick={() => setMode("register")}
                 aria-pressed={mode === "register"}
               >
-                Crear cuenta
+                Create account
               </button>
             </div>
 
@@ -74,7 +78,7 @@ export default function Home() {
             <button className="btn ghost" disabled>
               MISIONS
             </button>
-            <button className="btn ghost" disabled>
+            <button className="btn" onClick={handleResearch}>
               RESEARCH
             </button>
             <button className="btn" onClick={logout}>

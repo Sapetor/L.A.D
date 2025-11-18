@@ -1,5 +1,6 @@
 // src/levels/slidesVehicleDynamics/03-AckermannSteering.jsx
 import React, { useState, useRef, useEffect } from "react";
+import "../../components/slides/SlideLayout.scss";
 
 export const meta = {
   id: "vd-ackermann",
@@ -8,7 +9,7 @@ export const meta = {
   objectiveCode: "vd-slide-ackermann",
 };
 
-function AckermannVisualization({ wheelbase, trackWidth, innerAngle }) {
+function AckermannVisualization({ wheelbase, trackWidth, innerAngle, carX = 0, carY = 0, carHeading = 0, pathHistory = [] }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -22,9 +23,26 @@ function AckermannVisualization({ wheelbase, trackWidth, innerAngle }) {
     ctx.fillStyle = "#0a0e1a";
     ctx.fillRect(0, 0, w, h);
 
-    const scale = 80;
+    const scale = 40;
     const centerX = w / 2;
     const centerY = h / 2 + 50;
+
+    // Draw path history (trail)
+    if (pathHistory.length > 1) {
+      ctx.strokeStyle = "rgba(125, 249, 255, 0.4)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < pathHistory.length; i++) {
+        const px = centerX + (pathHistory[i].x - carX) * scale;
+        const py = centerY + (pathHistory[i].y - carY) * scale;
+        if (i === 0) {
+          ctx.moveTo(px, py);
+        } else {
+          ctx.lineTo(px, py);
+        }
+      }
+      ctx.stroke();
+    }
 
     // Calculate outer wheel angle using Ackermann formula
     const innerRad = (innerAngle * Math.PI) / 180;
@@ -37,21 +55,43 @@ function AckermannVisualization({ wheelbase, trackWidth, innerAngle }) {
     const outerRad = Math.atan(1 / cotOuter);
     const outerAngle = (outerRad * 180) / Math.PI;
 
-    // Calculate ICR position
-    let icrX = centerX;
-    let icrY = centerY;
+    // Calculate ICR position relative to car
+    let icrOffsetX = 0;
+    let icrOffsetY = 0;
     let R = Infinity;
 
     if (Math.abs(innerRad) > 0.001) {
       R = L / Math.tan(Math.abs(innerRad));
-      const sign = innerAngle > 0 ? -1 : 1;
-      icrX = centerX + sign * R * scale;
-      icrY = centerY + (wheelbase * scale / 2);
+
+      // Calculate rear axle position
+      const rearAxleOffsetX = -(wheelbase / 2) * Math.cos(carHeading);
+      const rearAxleOffsetY = -(wheelbase / 2) * Math.sin(carHeading);
+      const rearAxleX = carX + rearAxleOffsetX;
+      const rearAxleY = carY + rearAxleOffsetY;
+
+      // ICR perpendicular to car's heading
+      const carForwardAngle = carHeading - Math.PI / 2;
+      const perpAngle = carForwardAngle + (innerAngle > 0 ? Math.PI / 2 : -Math.PI / 2);
+      icrOffsetX = R * Math.cos(perpAngle);
+      icrOffsetY = R * Math.sin(perpAngle);
+
+      var icrWorldX = rearAxleX + icrOffsetX;
+      var icrWorldY = rearAxleY + icrOffsetY;
+    } else {
+      var icrWorldX = carX;
+      var icrWorldY = carY;
     }
+
+    // Transform world coordinates to screen (camera follows car)
+    const screenCarX = centerX;
+    const screenCarY = centerY;
+    const screenIcrX = centerX + (icrWorldX - carX) * scale;
+    const screenIcrY = centerY + (icrWorldY - carY) * scale;
 
     // Draw vehicle
     ctx.save();
-    ctx.translate(centerX, centerY);
+    ctx.translate(screenCarX, screenCarY);
+    ctx.rotate(carHeading);
 
     // Vehicle body
     ctx.strokeStyle = "#7df9ff";
@@ -109,54 +149,86 @@ function AckermannVisualization({ wheelbase, trackWidth, innerAngle }) {
     ctx.lineTo(rightX, rearY + 20);
     ctx.stroke();
 
+    // Direction indicator (front of car)
+    ctx.fillStyle = "#7df9ff";
+    ctx.beginPath();
+    ctx.moveTo(0, -wheelbase * scale / 2 - 10);
+    ctx.lineTo(-8, -wheelbase * scale / 2 - 20);
+    ctx.lineTo(8, -wheelbase * scale / 2 - 20);
+    ctx.closePath();
+    ctx.fill();
+
     ctx.restore();
 
     // Draw lines to ICR from both front wheels
-    if (Math.abs(innerRad) > 0.001 && Math.abs(icrX - centerX) < w * 2) {
+    if (Math.abs(innerRad) > 0.001 && Math.abs(screenIcrX - centerX) < w * 2) {
       ctx.setLineDash([5, 5]);
 
       // Line from inner wheel
       ctx.strokeStyle = "rgba(255, 92, 244, 0.5)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(centerX + innerWheel.x, centerY + frontY);
-      ctx.lineTo(icrX, icrY);
+      ctx.moveTo(screenCarX + innerWheel.x, screenCarY + frontY);
+      ctx.lineTo(screenIcrX, screenIcrY);
       ctx.stroke();
 
       // Line from outer wheel
       ctx.strokeStyle = "rgba(125, 249, 255, 0.5)";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(centerX + outerWheel.x, centerY + frontY);
-      ctx.lineTo(icrX, icrY);
+      ctx.moveTo(screenCarX + outerWheel.x, screenCarY + frontY);
+      ctx.lineTo(screenIcrX, screenIcrY);
       ctx.stroke();
 
       ctx.setLineDash([]);
 
+      // Turning circle arc
+      ctx.strokeStyle = "rgba(125, 249, 255, 0.3)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      const radius = Math.sqrt(
+        Math.pow(icrOffsetX, 2) + Math.pow(icrOffsetY, 2)
+      ) * scale;
+      ctx.arc(screenIcrX, screenIcrY, radius, 0, Math.PI * 2);
+      ctx.stroke();
+
       // ICR point
       ctx.fillStyle = "#ffd700";
       ctx.beginPath();
-      ctx.arc(icrX, icrY, 10, 0, Math.PI * 2);
+      ctx.arc(screenIcrX, screenIcrY, 10, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.font = "bold 14px monospace";
       ctx.fillStyle = "#ffd700";
-      ctx.fillText("ICR", icrX + 15, icrY);
+      ctx.fillText("ICR", screenIcrX + 15, screenIcrY);
+
+      // Display turning radius
+      ctx.font = "12px monospace";
+      ctx.fillStyle = "#7df9ff";
+      ctx.fillText(`R = ${R.toFixed(2)} m`, 20, h - 20);
+    } else {
+      ctx.font = "14px monospace";
+      ctx.fillStyle = "#a8b3d1";
+      ctx.fillText("Straight ahead (ICR at infinity)", centerX - 120, h - 20);
     }
 
-    // Display angles
-    ctx.font = "13px monospace";
+    // Display info
+    ctx.font = "12px monospace";
+    ctx.fillStyle = "#a8b3d1";
+    ctx.fillText(`Position: (${carX.toFixed(1)}, ${carY.toFixed(1)})`, 20, 30);
+    ctx.fillText(`Heading: ${((carHeading * 180 / Math.PI) % 360).toFixed(1)}°`, 20, 50);
+
     ctx.fillStyle = "#ff5cf4";
-    ctx.fillText(`Inner: ${innerAngle.toFixed(1)}°`, 20, 30);
+    ctx.fillText(`Inner: ${innerAngle.toFixed(1)}°`, 20, 75);
     ctx.fillStyle = "#7df9ff";
-    ctx.fillText(`Outer: ${outerAngle.toFixed(1)}°`, 20, 50);
+    ctx.fillText(`Outer: ${outerAngle.toFixed(1)}°`, 20, 95);
 
     if (Math.abs(innerRad) > 0.001) {
-      ctx.fillStyle = "#a8b3d1";
-      ctx.fillText(`Δ = ${Math.abs(innerAngle - outerAngle).toFixed(2)}°`, 20, 70);
+      ctx.fillStyle = "#ffd700";
+      ctx.fillText(`Δ = ${Math.abs(innerAngle - outerAngle).toFixed(2)}°`, 20, 115);
     }
 
-  }, [wheelbase, trackWidth, innerAngle]);
+  }, [wheelbase, trackWidth, innerAngle, carX, carY, carHeading, pathHistory]);
 
   return (
     <canvas
@@ -178,12 +250,99 @@ export default function AckermannSteering() {
   const [innerAngle, setInnerAngle] = useState(0);
   const [wheelbase, setWheelbase] = useState(2.7);
   const [trackWidth, setTrackWidth] = useState(1.5);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [carX, setCarX] = useState(0);
+  const [carY, setCarY] = useState(0);
+  const [carHeading, setCarHeading] = useState(0);
+  const [pathHistory, setPathHistory] = useState([]);
+  const animationRef = useRef(null);
 
   // Calculate outer angle using Ackermann formula
   const innerRad = (innerAngle * Math.PI) / 180;
   const cotInner = innerRad !== 0 ? 1 / Math.tan(innerRad) : Infinity;
   const cotOuter = cotInner + trackWidth / wheelbase;
   const outerAngle = cotOuter !== Infinity ? (Math.atan(1 / cotOuter) * 180) / Math.PI : 0;
+
+  // Animation loop
+  useEffect(() => {
+    if (!isPlaying) {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+      return;
+    }
+
+    let lastTime = performance.now();
+    const speed = 2.5; // meters per second
+
+    const animate = (currentTime) => {
+      const deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
+      lastTime = currentTime;
+
+      // Calculate movement using Ackermann steering geometry
+      const innerRad = (innerAngle * Math.PI) / 180;
+
+      setCarHeading(prevHeading => {
+        let newHeading = prevHeading;
+
+        if (Math.abs(innerRad) > 0.001) {
+          // Ackermann steering: Use the average of inner and outer wheel angles
+          // or the turning radius from the rear axle center
+          // For bicycle model, we use the inner wheel angle as reference
+          // R = L / tan(δ_inner) where L is wheelbase
+          const R = wheelbase / Math.tan(Math.abs(innerRad));
+
+          // Angular velocity around ICR
+          const angularVelocity = speed / R; // radians per second
+          const angleChange = angularVelocity * deltaTime * (innerRad > 0 ? 1 : -1);
+          newHeading = prevHeading + angleChange;
+        }
+
+        // Update position based on current heading
+        // In Ackermann, the rear axle center follows a circular path
+        setCarX(prevX => {
+          const newX = prevX + speed * deltaTime * Math.cos(newHeading);
+          return newX;
+        });
+        setCarY(prevY => {
+          const newY = prevY + speed * deltaTime * Math.sin(newHeading);
+          return newY;
+        });
+
+        // Update path history
+        setPathHistory(prev => {
+          const newPath = [...prev, { x: carX, y: carY }];
+          // Keep only last 100 points
+          return newPath.slice(-100);
+        });
+
+        return newHeading;
+      });
+
+      animationRef.current = requestAnimationFrame(animate);
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isPlaying, innerAngle, wheelbase, carX, carY]);
+
+  const handlePlayPause = () => {
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleReset = () => {
+    setIsPlaying(false);
+    setCarX(0);
+    setCarY(0);
+    setCarHeading(0);
+    setPathHistory([]);
+  };
 
   return (
     <div className="slide">
@@ -223,9 +382,11 @@ export default function AckermannSteering() {
 
           <div className="slide-card" style={{ marginTop: ".75rem" }}>
             <div className="slide-card__title">Interactive Controls</div>
-            <div style={{ display: "grid", gap: ".5rem" }}>
-              <label style={{ display: "grid", gap: ".25rem" }}>
-                <span>Inner Wheel Angle: {innerAngle}°</span>
+            <div className="slide-controls">
+              <div className="slide-slider">
+                <span className="slide-slider__label">
+                  Inner Angle: <span className="slide-slider__value">{innerAngle}°</span>
+                </span>
                 <input
                   type="range"
                   min="-30"
@@ -233,18 +394,20 @@ export default function AckermannSteering() {
                   step="0.5"
                   value={innerAngle}
                   onChange={(e) => setInnerAngle(Number(e.target.value))}
-                  style={{ width: "100%" }}
+                  className="slide-slider__input"
                 />
-              </label>
-
-              <div className="slide-code" style={{ fontSize: "0.9rem", padding: ".4rem" }}>
-                Calculated Outer Angle: <b>{outerAngle.toFixed(2)}°</b>
-                <br />
-                Difference: <b>{Math.abs(innerAngle - outerAngle).toFixed(2)}°</b>
               </div>
 
-              <label style={{ display: "grid", gap: ".25rem" }}>
-                <span>Wheelbase: {wheelbase} m</span>
+              <div className="slide-code" style={{ fontSize: "11px", padding: ".4rem" }}>
+                Calculated Outer Angle: <b style={{ color: "#7df9ff" }}>{outerAngle.toFixed(2)}°</b>
+                <br />
+                Angle Difference: <b style={{ color: "#ff5cf4" }}>{Math.abs(innerAngle - outerAngle).toFixed(2)}°</b>
+              </div>
+
+              <div className="slide-slider">
+                <span className="slide-slider__label">
+                  Wheelbase: <span className="slide-slider__value">{wheelbase}m</span>
+                </span>
                 <input
                   type="range"
                   min="2.0"
@@ -252,12 +415,14 @@ export default function AckermannSteering() {
                   step="0.1"
                   value={wheelbase}
                   onChange={(e) => setWheelbase(Number(e.target.value))}
-                  style={{ width: "100%" }}
+                  className="slide-slider__input"
                 />
-              </label>
+              </div>
 
-              <label style={{ display: "grid", gap: ".25rem" }}>
-                <span>Track Width: {trackWidth} m</span>
+              <div className="slide-slider">
+                <span className="slide-slider__label">
+                  Car Width: <span className="slide-slider__value">{trackWidth}m</span>
+                </span>
                 <input
                   type="range"
                   min="1.2"
@@ -265,9 +430,59 @@ export default function AckermannSteering() {
                   step="0.1"
                   value={trackWidth}
                   onChange={(e) => setTrackWidth(Number(e.target.value))}
-                  style={{ width: "100%" }}
+                  className="slide-slider__input"
                 />
-              </label>
+              </div>
+
+              <div style={{ display: "flex", gap: ".4rem", marginTop: ".25rem" }}>
+                <button
+                  onClick={handlePlayPause}
+                  style={{
+                    flex: 1,
+                    padding: ".5rem .75rem",
+                    background: isPlaying ? "#ff5cf4" : "#7df9ff",
+                    color: "#0a0e1a",
+                    border: "none",
+                    borderRadius: "5px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    fontSize: "11px",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  {isPlaying ? "⏸ Pause" : "▶ Play"}
+                </button>
+                <button
+                  onClick={handleReset}
+                  style={{
+                    padding: ".5rem .75rem",
+                    background: "#a8b3d1",
+                    color: "#0a0e1a",
+                    border: "none",
+                    borderRadius: "5px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    fontSize: "11px",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  ↺ Reset
+                </button>
+              </div>
+
+              {isPlaying && (
+                <div style={{
+                  padding: ".5rem",
+                  background: "rgba(125, 249, 255, 0.08)",
+                  borderRadius: "4px",
+                  fontSize: "10px",
+                  color: "#7df9ff",
+                  borderLeft: "2px solid #7df9ff",
+                  marginTop: ".25rem"
+                }}>
+                  <strong>Tip:</strong> Watch how the inner and outer wheels maintain different angles while both pointing toward the ICR!
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -277,11 +492,15 @@ export default function AckermannSteering() {
             wheelbase={wheelbase}
             trackWidth={trackWidth}
             innerAngle={innerAngle}
+            carX={carX}
+            carY={carY}
+            carHeading={carHeading}
+            pathHistory={pathHistory}
           />
           <figcaption>
             Top view: The <span style={{ color: "#ff5cf4" }}>inner wheel (pink)</span> has a
             larger steering angle than the <span style={{ color: "#7df9ff" }}>outer wheel (cyan)</span>.
-            Both wheel axes intersect at the ICR (gold point).
+            Both wheel axes intersect at the <span style={{ color: "#ffd700" }}>ICR (gold point)</span>.
           </figcaption>
         </div>
       </div>

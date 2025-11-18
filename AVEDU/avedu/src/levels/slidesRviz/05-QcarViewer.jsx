@@ -4,6 +4,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, Grid } from "@react-three/drei";
 import * as THREE from "three";
 import URDFLoader from "urdf-loader";
+import { STLLoader } from "three/examples/jsm/loaders/STLLoader";
 import ROSLIB from "roslib";
 
 // >>> IP/puertos centralizados
@@ -69,15 +70,28 @@ function RobotModel() {
     // Reescribe rutas relativas hacia el server estático
     const manager = new THREE.LoadingManager();
     manager.setURLModifier((url) => {
+      // Si es una ruta relativa que empieza con ../meshes/, construir URL absoluta
+      if (url.includes('../meshes/')) {
+        const filename = url.split('/').pop();
+        return `${STATIC_BASE}/qcar_description/meshes/${filename}`;
+      }
       // Ej.: /qcar_description/... -> http(s)://HOST:7000/qcar_description/...
       if (url.startsWith("/qcar_description/")) return `${STATIC_BASE}${url}`;
       return url;
     });
 
     const loader = new URDFLoader(manager);
+    // Configurar loader para evitar Blob URLs
+    loader.workingPath = '';
+    loader.fetchOptions = { mode: 'cors', credentials: 'same-origin' };
+
+    // Configurar packages para resolver correctamente las rutas
+    const loaderPackages = `${STATIC_BASE}/qcar_description`;
+
     loader.load(
       `${STATIC_BASE}/qcar_description/urdf/robot_runtime.urdf`,
       (urdf) => {
+        console.log('[QcarViewer] URDF loaded successfully');
         urdf.scale.set(1, 1, 1);
         urdf.frustumCulled = false;
         urdf.traverse((o) => (o.frustumCulled = false));
@@ -103,9 +117,42 @@ function RobotModel() {
           });
         });
       },
-      undefined,
-      (err) => console.error("URDF error:", err),
-      { packages: { qcar_description: `${STATIC_BASE}/qcar_description` } }
+      (progress) => {
+        if (progress && progress.total) {
+          console.log(`[QcarViewer] Loading: ${Math.round((progress.loaded / progress.total) * 100)}%`);
+        }
+      },
+      (err) => {
+        console.error("[QcarViewer] URDF error:", err);
+        console.error("[QcarViewer] Failed URL:", err.target?.responseURL || 'unknown');
+      },
+      {
+        packages: loaderPackages,
+        workingPath: STATIC_BASE + '/qcar_description/',
+        loadMeshCb: (path, manager, done) => {
+          // Callback personalizado para cargar meshes sin Blob URLs
+          const resolvedPath = path.includes('../meshes/')
+            ? `${STATIC_BASE}/qcar_description/meshes/${path.split('/').pop()}`
+            : path;
+
+          console.log('[QcarViewer] Loading mesh:', resolvedPath);
+
+          // Usar STLLoader para parsear el archivo STL directamente desde HTTP
+          const stlLoader = new STLLoader(manager);
+          stlLoader.load(
+            resolvedPath,
+            (geometry) => {
+              console.log('[QcarViewer] Mesh loaded:', resolvedPath);
+              done(geometry);
+            },
+            undefined,
+            (err) => {
+              console.error('[QcarViewer] Mesh load error:', err);
+              console.error('[QcarViewer] Failed path:', resolvedPath);
+            }
+          );
+        }
+      }
     );
 
     // Cleanup

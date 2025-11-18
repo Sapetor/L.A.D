@@ -16,7 +16,7 @@ import "@xyflow/react/dist/style.css";
 
 export const meta = {
   id: "connect-game",
-  title: "Mini-juego: conecta el flujo",
+  title: "Mini game: Connect the flow",
   order: 3,
   objectiveCode: "ros-slide-connect-game",
 };

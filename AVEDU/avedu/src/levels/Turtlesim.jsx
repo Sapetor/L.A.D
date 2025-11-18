@@ -147,30 +147,34 @@ export default function TurtleSimPage({ objectives = [], onObjectiveHit, onLevel
     },
   });
 
-  // ---- (Re)advertise cmd_vel detectado ----
+  // ---- (Re)advertise cmd_vel for active turtle ----
   useEffect(() => {
-    if (!connected || !cmdVelTopic) return undefined;
+    if (!connected) return undefined;
+
+    // Construct topic for active turtle
+    const activeCmdVelTopic = `/${active}/cmd_vel`;
+
     try {
       cmdRef.current?.unadvertise?.();
-      cmdRef.current = advertise(cmdVelTopic, TYPE_TWIST);
-      console.log("[TSIM] Advertise cmd_vel ->", cmdVelTopic);
+      cmdRef.current = advertise(activeCmdVelTopic, TYPE_TWIST);
+      console.log("[TSIM] Advertise cmd_vel ->", activeCmdVelTopic, "for active turtle:", active);
     } catch (e) {
       console.error("[TSIM] advertise error:", e);
     }
     return () => {
       try { cmdRef.current?.unadvertise?.(); } catch (e) { console.error("[TSIM] unadvertise error:", e); }
     };
-  }, [connected, cmdVelTopic, advertise]);
+  }, [connected, active, advertise]);
 
   // ---- Helpers publish/hold ----
   const publish = useCallback((lx, az) => {
     if (!cmdRef.current) return;
-    console.log("[ROS][publish]", cmdVelTopic, { lx, az });
+    console.log("[ROS][publish]", `/${active}/cmd_vel`, { lx, az });
     cmdRef.current.publish({
       linear: { x: lx, y: 0, z: 0 },
       angular: { x: 0, y: 0, z: az },
     });
-  }, [cmdVelTopic]);
+  }, [active]);
 
   const startHold = useCallback((lx, az) => {
     publish(lx, az);
@@ -260,23 +264,26 @@ export default function TurtleSimPage({ objectives = [], onObjectiveHit, onLevel
 
       <main className="tsim-layout">
         <section className="tsim-canvasCard">
-          <TSimCanvas
-            turtles={turtles}
-            active={active}
-            worldSize={WORLD}
-            goalBounds={GOAL_BOUNDS}
-          />
-          {/* Indicadores de descubrimiento */}
-          <div style={{marginTop:8, fontSize:12, color:"#9fb3c8"}}>
-            <div>poseTopic: <code>{String(poseTopic || "detecting…")}</code></div>
-            <div>cmdVelTopic: <code>{String(cmdVelTopic || "detecting…")}</code></div>
-            <div>spawnService: <code>{String(spawnService || "detecting…")}</code></div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "12px" }}>
+            <TSimCanvas
+              turtles={turtles}
+              active={active}
+              worldSize={WORLD}
+              goalBounds={GOAL_BOUNDS}
+            />
+            {/* ROS Topics Info */}
+            <div className="tsim-topicsInfo">
+              <div><strong>ROS Topics:</strong></div>
+              <div style={{paddingLeft: "12px"}}>Pose: <code>{String(poseTopic || "detecting…")}</code></div>
+              <div style={{paddingLeft: "12px"}}>Cmd: <code>{String(cmdVelTopic || "detecting…")}</code></div>
+              <div style={{paddingLeft: "12px"}}>Spawn: <code>{String(spawnService || "detecting…")}</code></div>
+            </div>
           </div>
         </section>
 
         <section className="tsim-controlsPanel">
           <TSimControls
-            connected={connected && !!cmdVelTopic}
+            connected={connected && !!active}
             startHold={startHold}
             stopHold={stopHold}
             publish={publish}

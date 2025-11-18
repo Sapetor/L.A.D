@@ -14,26 +14,26 @@
 
 ## 📖 What is L.A.D?
 
-L.A.D (Learn Autonomous Driving) is a **complete educational platform** designed for robotics and autonomous driving courses. It brings together three integrated components:
+L.A.D (Learn Autonomous Driving) is an **educational platform** designed for robotics and autonomous driving courses. It brings together three integrated components:
 
-1. 🎨 **React Frontend** - Interactive web interface where students access learning units, levels, and ROS widgets
-2. 🔧 **Django REST Backend** - Manages authentication, content catalog, and individual student progress
-3. 🤖 **ROS 2 Simulators** - Real robotics simulations accessible directly from the browser via rosbridge WebSocket
+1. **React Frontend** - Interactive web interface where students access learning units, levels, and ROS widgets
+2. **Django REST Backend** - Manages authentication, content catalog, and individual student progress
+3. **ROS 2 Simulators** - Real robotics simulations accessible directly from the browser via rosbridge WebSocket
 
 ### Why L.A.D?
 
-- ✅ **No complex installations** - Students access everything through a web browser
-- ✅ **Hands-on learning** - Real ROS 2 simulations integrated with lessons
-- ✅ **Progress tracking** - Individual student monitoring and assessment
-- ✅ **Scalable** - Deploy on a single machine and serve multiple students over LAN
-- ✅ **Modular** - Easy to add new levels, missions, and ROS scenarios
+- **No complex installations** - Students access everything through a web browser
+-  **Hands-on learning** - Real ROS 2 simulations integrated with lessons
+-  **Progress tracking** - Individual student monitoring and assessment
+-  **Scalable** - Deploy on a single machine and serve multiple students over LAN
+-  **Modular** - Easy to add new levels, missions, and ROS scenarios
 
 ### Who is it for?
 
-- 🎓 **Educators** teaching robotics, autonomous driving, or ROS courses
-- 👨‍🎓 **Students** learning robotics without complex setup requirements
-- 🏫 **Institutions** looking to deploy robotics labs quickly
-- 🔬 **Researchers** prototyping interactive robotics demonstrations
+-  **Educators** teaching robotics, autonomous driving, or ROS courses
+-  **Students** learning robotics without complex setup requirements
+-  **Institutions** looking to deploy robotics labs quickly
+-  **Researchers** prototyping interactive robotics demonstrations
 
 ---
 
@@ -72,14 +72,14 @@ chmod +x installer.sh
 ```
 
 **What the installer does:**
-- ✅ Checks all prerequisites (Python, Node.js, Docker)
-- ✅ Creates Python virtual environment
-- ✅ Installs all backend dependencies from `requirements.txt`
-- ✅ Runs database migrations
-- ✅ Loads sample content (Units, Levels, Objectives)
-- ✅ Creates admin superuser account
-- ✅ Installs all frontend npm packages
-- ✅ Builds ROS 2 Docker images
+-  Checks all prerequisites (Python, Node.js, Docker)
+-  Creates Python virtual environment
+-  Installs all backend dependencies from `requirements.txt`
+-  Runs database migrations
+-  Loads sample content (Units, Levels, Objectives)
+-  Creates admin superuser account
+-  Installs all frontend npm packages
+-  Builds ROS 2 Docker images
 
 ### Starting the Platform
 
@@ -150,29 +150,29 @@ docker compose build
 ## ✨ Features
 
 ### For Students
-- 📚 **Structured Learning Path** - Organized units and levels with progressive difficulty
-- 🎮 **Interactive Simulations** - Real-time ROS 2 robot control from the browser
-- 📊 **Progress Tracking** - See your achievements and completed objectives
-- 🎯 **Hands-on Missions** - Practical exercises that validate learning through ROS topics
-- 📱 **Multi-device Access** - Learn from any device on the network
+-  **Structured Learning Path** - Organized units and levels with progressive difficulty
+-  **Interactive Simulations** - Real-time ROS 2 robot control from the browser
+-  **Progress Tracking** - See your achievements and completed objectives
+-  **Hands-on Missions** - Practical exercises that validate learning through ROS topics
+-  **Multi-device Access** - Learn from any device on the network
 
 ### For Educators
-- 🎛️ **Content Management** - Easy-to-use admin panel for creating units and levels
-- 📈 **Student Monitoring** - Track individual and class progress
-- 🔧 **Customizable Missions** - Define objectives tied to ROS topics and services
-- 🎨 **Flexible Content** - Add videos, slides, and interactive widgets
-- 📋 **Assessment Tools** - Automatic evaluation based on ROS simulation performance
+-  **Content Management** - Easy-to-use admin panel for creating units and levels
+-  **Student Monitoring** - Track individual and class progress
+-  **Customizable Missions** - Define objectives tied to ROS topics and services
+-  **Flexible Content** - Add videos, slides, and interactive widgets
+-  **Assessment Tools** - Automatic evaluation based on ROS simulation performance
 
 ### Technical Features
-- 🔄 **Real-time ROS Integration** - WebSocket connection to rosbridge for live robot interaction
-- 🔐 **JWT Authentication** - Secure user sessions with token-based auth
-- 🌐 **LAN Deployment** - Automatic IP detection for network-wide access
-- 🐳 **Dockerized ROS** - Pre-configured ROS 2 Humble environment
-- 📦 **Modular Architecture** - Easy to extend with new levels and simulations
+-  **Real-time ROS Integration** - WebSocket connection to rosbridge for live robot interaction
+-  **JWT Authentication** - Secure user sessions with token-based auth
+-  **LAN Deployment** - Automatic IP detection for network-wide access
+-  **Dockerized ROS** - Pre-configured ROS 2 Humble environment
+-  **Modular Architecture** - Easy to extend with new levels and simulations
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ### System Overview
 
@@ -371,7 +371,7 @@ L.A.D/
 All services read from `config/ip_config.json`:
 ```json
 {
-  "exposed_ip": "192.168.100.116"
+  "exposed_ip": "<your_ip>"
 }
 ```
 
@@ -383,7 +383,7 @@ npm start  # Automatically detects and updates IP
 
 **Manual IP Configuration**
 ```bash
-node scripts/set-ip.js 192.168.1.100
+node scripts/set-ip.js <your ip>
 ```
 
 ### Environment Variables
@@ -558,8 +558,8 @@ npm start
    ```
 
 2. **Access from other devices**:
-   - Note the IP shown in terminal (e.g., `192.168.1.100`)
-   - On another device, navigate to: `http://192.168.1.100:3000`
+   - Note the IP shown in terminal (e.g., `< ip>`)
+   - On another device, navigate to: `http://<server ip>:3000`
 
 3. **Configure firewall** (if needed):
    ```powershell
@@ -572,14 +572,14 @@ npm start
 ### Network Architecture
 
 ```
-Host Computer (192.168.1.100)
+Host Computer (1.1.1.100)
 ├── Frontend :3000  → Accessible from any device on LAN
 ├── Backend :8000   → API endpoints
 └── ROS Docker :9090 → rosbridge WebSocket
 
-Student Device 1 (192.168.1.101) → http://192.168.1.100:3000
-Student Device 2 (192.168.1.102) → http://192.168.1.100:3000
-Student Device 3 (192.168.1.103) → http://192.168.1.100:3000
+Student Device 1 (1.1.1.101) → http://1.1.1.100:3000
+Student Device 2 (1.1.1.102) → http://1.1.1.100:3000
+Student Device 3 (1.1.1.103) → http://1.1.1.100:3000
 ```
 
 ---
@@ -643,8 +643,6 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 ---
 
 ## 📄 License
-
-[Add your license here]
 
 ---
 
