@@ -11,9 +11,11 @@ import "../../styles/components/_urdfViewerNode.scss";
 /**
  * URDF Viewer - 3D visualization of URDF robot description
  * Renders XML received via 'xml' handle using urdf-loader and @react-three/fiber
+ * Optionally accepts joint states to animate the robot
  */
 export default function UrdfViewerNode({ data }) {
   const xml = data?.xml || "";
+  const jointStates = data?.jointStates || {};
   const [url, setUrl] = useState(null);
 
   useEffect(() => {
@@ -34,10 +36,14 @@ export default function UrdfViewerNode({ data }) {
 
         <div className="urdf-canvas-container">
           {url ? (
-            <UrdfCanvas url={url} />
+            <UrdfCanvas url={url} jointStates={jointStates} />
           ) : (
             <div className="rf-hint">
               Connect XML output from Robot node to visualize
+              <br />
+              <small style={{ fontSize: "0.85em", opacity: 0.7, marginTop: "0.5rem", display: "block" }}>
+                Optional: Connect Joint Controller states for animation
+              </small>
             </div>
           )}
         </div>
@@ -48,14 +54,22 @@ export default function UrdfViewerNode({ data }) {
           id="xml"
           label="xml"
           color="purple"
-          top="50%"
+          top="45%"
+        />
+        <HandleWithLabel
+          type="target"
+          position={Position.Left}
+          id="jointStates"
+          label="states"
+          color="blue"
+          top="60%"
         />
       </div>
     </div>
   );
 }
 
-function UrdfCanvas({ url }) {
+function UrdfCanvas({ url, jointStates }) {
   return (
     <Canvas
       style={{ width: "100%", height: "100%" }}
@@ -66,13 +80,13 @@ function UrdfCanvas({ url }) {
       <directionalLight position={[5, 6, 8]} intensity={0.9} />
       {/* Z-up: piso en XY => rotamos la grilla +90° en X */}
       <Grid args={[20, 40]} rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0]} />
-      <RobotFromUrl url={url} />
+      <RobotFromUrl url={url} jointStates={jointStates} />
       <OrbitControls makeDefault enableDamping dampingFactor={0.08} minDistance={0.01} maxDistance={2000} />
     </Canvas>
   );
 }
 
-function RobotFromUrl({ url }) {
+function RobotFromUrl({ url, jointStates }) {
   const [obj, setObj] = useState(null);
   const loaderRef = useRef(null);
 
@@ -100,6 +114,25 @@ function RobotFromUrl({ url }) {
       setObj(null);
     };
   }, [url]);
+
+  // Apply joint states to animate the robot
+  useEffect(() => {
+    if (!obj || !obj.joints || !jointStates) return;
+
+    Object.entries(jointStates).forEach(([jointName, value]) => {
+      const joint = obj.joints[jointName];
+      if (!joint) return;
+
+      // For revolute and continuous joints, set angle
+      if (joint.jointType === "revolute" || joint.jointType === "continuous") {
+        joint.setJointValue(value);
+      }
+      // For prismatic joints, set position
+      else if (joint.jointType === "prismatic") {
+        joint.setJointValue(value);
+      }
+    });
+  }, [obj, jointStates]);
 
   return obj ? <primitive object={obj} /> : null;
 }

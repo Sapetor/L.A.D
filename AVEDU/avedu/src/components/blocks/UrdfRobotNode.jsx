@@ -13,8 +13,18 @@ export default function UrdfRobotNode({ id, data }) {
     data?.onChange?.(id, { [key]: value });
   };
 
-  const linksCount = Array.isArray(data?.links) ? data.links.length : 0;
-  const jointsCount = Array.isArray(data?.joints) ? data.joints.length : 0;
+  const links = Array.isArray(data?.links) ? data.links : [];
+  const joints = Array.isArray(data?.joints) ? data.joints : [];
+
+  const linksCount = links.length;
+  const jointsCount = joints.length;
+
+  // Validate joints - check for missing required fields
+  const invalidJoints = joints.filter(j => !j?.name || !j.parent || !j.child || !j.type);
+  const validJointsCount = jointsCount - invalidJoints.length;
+
+  // Validate links
+  const invalidLinks = links.filter(l => !l?.name);
 
   return (
     <div className="rf-card" style={{ minWidth: 400 }}>
@@ -41,12 +51,26 @@ export default function UrdfRobotNode({ id, data }) {
           borderRadius: "8px"
         }}>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "1.5em", fontWeight: "bold", color: "#4caf50" }}>{linksCount}</div>
+            <div style={{ fontSize: "1.5em", fontWeight: "bold", color: linksCount > 0 ? "#4caf50" : "#666" }}>
+              {linksCount}
+            </div>
             <div style={{ fontSize: "0.85em", opacity: 0.8 }}>Links</div>
+            {invalidLinks.length > 0 && (
+              <div style={{ fontSize: "0.7em", color: "#ff9800", marginTop: "0.25rem" }}>
+                {invalidLinks.length} missing name
+              </div>
+            )}
           </div>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "1.5em", fontWeight: "bold", color: "#2196f3" }}>{jointsCount}</div>
+            <div style={{ fontSize: "1.5em", fontWeight: "bold", color: validJointsCount > 0 ? "#2196f3" : "#666" }}>
+              {jointsCount}
+            </div>
             <div style={{ fontSize: "0.85em", opacity: 0.8 }}>Joints</div>
+            {invalidJoints.length > 0 && (
+              <div style={{ fontSize: "0.7em", color: "#ff9800", marginTop: "0.25rem" }}>
+                {invalidJoints.length} incomplete
+              </div>
+            )}
           </div>
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: "1.5em", fontWeight: "bold", color: data?.xml ? "#4caf50" : "#666" }}>
@@ -55,6 +79,27 @@ export default function UrdfRobotNode({ id, data }) {
             <div style={{ fontSize: "0.85em", opacity: 0.8 }}>XML</div>
           </div>
         </div>
+
+        {/* Validation warnings */}
+        {(invalidJoints.length > 0 || invalidLinks.length > 0) && (
+          <div style={{
+            padding: ".5rem",
+            background: "rgba(255, 152, 0, 0.1)",
+            border: "1px solid rgba(255, 152, 0, 0.3)",
+            borderRadius: "6px",
+            fontSize: "0.85em"
+          }}>
+            <div style={{ fontWeight: "bold", marginBottom: ".25rem", color: "#ff9800" }}>
+              ⚠ Validation Issues:
+            </div>
+            {invalidLinks.length > 0 && (
+              <div>• {invalidLinks.length} link(s) missing name</div>
+            )}
+            {invalidJoints.length > 0 && (
+              <div>• {invalidJoints.length} joint(s) missing required fields (name, parent, child, or type)</div>
+            )}
+          </div>
+        )}
 
         {data?.xml && (
           <details>

@@ -9,7 +9,8 @@ import HandleWithLabel from "./HandleWithLabel";
  * Useful for testing joint articulation
  */
 export default function UrdfControlNode({ id, data }) {
-  const [jointStates, setJointStates] = useState({});
+  // Use data.jointStates as single source of truth
+  const jointStates = data?.jointStates || {};
 
   // Parse XML to extract joints
   const joints = useMemo(() => {
@@ -66,28 +67,34 @@ export default function UrdfControlNode({ id, data }) {
     }
   }, [data?.xml]);
 
-  // Initialize joint states when joints change
+  // Initialize joint states when joints are first detected
   useEffect(() => {
-    const initialStates = {};
-    joints.forEach((joint) => {
-      if (!(joint.name in jointStates)) {
-        // Initialize to middle position
-        initialStates[joint.name] = (joint.min + joint.max) / 2;
-      }
-    });
-    if (Object.keys(initialStates).length > 0) {
-      setJointStates((prev) => ({ ...prev, ...initialStates }));
+    if (joints.length === 0) return;
+
+    // Check if we need to initialize
+    const needsInit = joints.some(joint => !(joint.name in jointStates));
+
+    if (needsInit) {
+      const initialStates = { ...jointStates };
+      joints.forEach((joint) => {
+        if (!(joint.name in initialStates)) {
+          // Initialize to middle position
+          initialStates[joint.name] = (joint.min + joint.max) / 2;
+        }
+      });
+      data?.onChange?.(id, { jointStates: initialStates });
     }
-  }, [joints]);
+  }, [joints, id, data, jointStates]);
 
   const handleSliderChange = (jointName, value) => {
-    setJointStates((prev) => ({
-      ...prev,
-      [jointName]: parseFloat(value),
-    }));
+    const newValue = parseFloat(value);
+    const newStates = {
+      ...jointStates,
+      [jointName]: newValue,
+    };
 
-    // Notify parent of joint states change
-    data?.onChange?.(id, { jointStates: { ...jointStates, [jointName]: parseFloat(value) } });
+    // Notify parent immediately
+    data?.onChange?.(id, { jointStates: newStates });
   };
 
   const handleReset = () => {
@@ -95,7 +102,6 @@ export default function UrdfControlNode({ id, data }) {
     joints.forEach((joint) => {
       resetStates[joint.name] = (joint.min + joint.max) / 2;
     });
-    setJointStates(resetStates);
     data?.onChange?.(id, { jointStates: resetStates });
   };
 
@@ -207,12 +213,13 @@ export default function UrdfControlNode({ id, data }) {
                       type="range"
                       min={joint.min}
                       max={joint.max}
-                      step={(joint.max - joint.min) / 200}
+                      step={(joint.max - joint.min) / 100}
                       value={value}
+                      onInput={(e) => handleSliderChange(joint.name, e.target.value)}
                       onChange={(e) => handleSliderChange(joint.name, e.target.value)}
                       style={{
                         width: "100%",
-                        cursor: "pointer",
+                        cursor: "grab",
                         accentColor: "#2196f3",
                       }}
                     />

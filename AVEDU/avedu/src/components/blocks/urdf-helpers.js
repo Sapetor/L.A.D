@@ -94,9 +94,20 @@ export function jointToXml(j) {
     ? `<origin xyz="${esc(fmtVec(j.origin.xyz))}" rpy="${esc(fmtVec(j.origin.rpy))}"/>`
     : "";
   const axis = j.axis ? `<axis xyz="${esc(fmtVec(j.axis.xyz))}"/>` : "";
+
+  // Add limit element for movable joints
+  let limit = "";
+  if (j.limit && (j.type === "revolute" || j.type === "prismatic")) {
+    const lower = j.limit.lower !== undefined ? j.limit.lower : (j.type === "prismatic" ? -1 : -3.14159);
+    const upper = j.limit.upper !== undefined ? j.limit.upper : (j.type === "prismatic" ? 1 : 3.14159);
+    const effort = j.limit.effort !== undefined ? j.limit.effort : 100;
+    const velocity = j.limit.velocity !== undefined ? j.limit.velocity : 1;
+    limit = `<limit lower="${esc(lower)}" upper="${esc(upper)}" effort="${esc(effort)}" velocity="${esc(velocity)}"/>`;
+  }
+
   return `<joint name="${esc(j.name)}" type="${esc(j.type)}">${origin}<parent link="${esc(
     j.parent
-  )}"/><child link="${esc(j.child)}"/>${axis}</joint>`;
+  )}"/><child link="${esc(j.child)}"/>${axis}${limit}</joint>`;
 }
 
 /** Documento <robot>… con links y joints */
@@ -227,7 +238,7 @@ export function computeUrdfXml(nodes, edges) {
 /**
  * Sincroniza el XML generado hacia:
  *  - el propio nodo urdfRobot (data.xml)
- *  - cualquier urdfPreview / urdfXmlPreview / urdfViewer en el grafo
+ *  - cualquier urdfPreview / urdfXmlPreview / urdfViewer / urdfControl en el grafo
  */
 export function syncUrdfDerived(nodes, edges, setNodes) {
   const deriv = computeUrdfXml(nodes, edges);
@@ -241,12 +252,62 @@ export function syncUrdfDerived(nodes, edges, setNodes) {
       const isTarget = (n.id === robotId) ||
                        (n.type === 'urdfPreview') ||
                        (n.type === 'urdfXmlPreview') ||
-                       (n.type === 'urdfViewer');
+                       (n.type === 'urdfViewer') ||
+                       (n.type === 'urdfControl');
       if (!isTarget) return n;
 
       if (curr.xml === xml) return n; // nada cambia
       changed = true;
       return { ...n, data: { ...curr, xml } };
+    });
+
+    return changed ? next : prev;
+  });
+}
+
+/**
+ * Sincroniza los estados de articulaciones desde nodos urdfControl hacia urdfViewer
+ * que están conectados mediante edges
+ */
+export function syncJointStates(nodes, edges, setNodes) {
+  // Find all urdfControl nodes with joint states
+  const controlNodes = nodes.filter(n => n.type === 'urdfControl' && n.data?.jointStates);
+
+  if (controlNodes.length === 0) return;
+
+  setNodes(prev => {
+    let changed = false;
+    const next = prev.map(n => {
+      // Only update urdfViewer nodes
+      if (n.type !== 'urdfViewer') return n;
+
+      // Find incoming edge from urdfControl to this viewer's jointStates handle
+      const incomingEdge = edges.find(
+        e => e.target === n.id && e.targetHandle === 'jointStates'
+      );
+
+      if (!incomingEdge) return n;
+
+      // Find the source control node
+      const sourceControl = controlNodes.find(c => c.id === incomingEdge.source);
+      if (!sourceControl || !sourceControl.data?.jointStates) return n;
+
+      const newJointStates = sourceControl.data.jointStates;
+      const currentJointStates = n.data?.jointStates;
+
+      // Check if joint states actually changed
+      if (JSON.stringify(currentJointStates) === JSON.stringify(newJointStates)) {
+        return n;
+      }
+
+      changed = true;
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          jointStates: newJointStates
+        }
+      };
     });
 
     return changed ? next : prev;

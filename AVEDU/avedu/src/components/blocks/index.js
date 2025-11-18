@@ -201,10 +201,10 @@ export function defaultDataFor(typeOrPreset) {
     return { id: "", xml: "" };
 
   if (typeOrPreset === "urdfViewer")
-    return { id: "", xml: "" };
+    return { id: "", xml: "", jointStates: {} };
 
   if (typeOrPreset === "urdfControl")
-    return { id: "", xml: "" };
+    return { id: "", xml: "", jointStates: {} };
 
   // -------- URDF V2 (modular) --------
   if (typeOrPreset === "urdfInertial")

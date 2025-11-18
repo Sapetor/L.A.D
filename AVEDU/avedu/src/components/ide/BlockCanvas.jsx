@@ -13,7 +13,7 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import { nodeTypes, defaultDataFor } from "../blocks";
-import { syncUrdfDerived } from "../blocks/urdf-helpers";
+import { syncUrdfDerived, syncJointStates } from "../blocks/urdf-helpers";
 import "./BlockCanvas.scss";
 
 /**
@@ -60,6 +60,11 @@ export function BlockCanvas({
   // Sync URDF XML to viewer nodes when graph changes
   useEffect(() => {
     syncUrdfDerived(nodes, edges, setNodes);
+  }, [nodes, edges, setNodes]);
+
+  // Sync joint states from control nodes to viewer nodes
+  useEffect(() => {
+    syncJointStates(nodes, edges, setNodes);
   }, [nodes, edges, setNodes]);
 
   // Connection handler

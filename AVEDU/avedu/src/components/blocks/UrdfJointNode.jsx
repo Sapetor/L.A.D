@@ -97,18 +97,36 @@ export default function UrdfJointNode({ id, data }) {
     edit({ child: val });
   };
 
+  // Check if all required fields are filled
+  const isValid = d.name && d.type && parent && child;
+
   return (
     <div className="rf-card" style={{ minWidth: 340 }}>
-      <div className="rf-card__title">URDF Joint</div>
+      <div className="rf-card__title">
+        URDF Joint
+        {!isValid && (
+          <span style={{
+            marginLeft: "0.5rem",
+            fontSize: "0.8em",
+            color: "#ff9800",
+            fontWeight: "normal"
+          }}>
+            ⚠ Incomplete
+          </span>
+        )}
+      </div>
 
       <div className="rf-card__body" style={{ display: "grid", gap: ".5rem" }}>
         <div className="rf-field">
-          <label>Name</label>
+          <label>
+            Name {!d.name && <span style={{ color: "#ff9800" }}>*</span>}
+          </label>
           <input
             className="rf-input"
             value={d.name || ""}
             placeholder="joint1"
             onChange={(e) => edit({ name: e.target.value })}
+            style={!d.name ? { borderColor: "#ff9800" } : {}}
           />
         </div>
 
@@ -128,28 +146,75 @@ export default function UrdfJointNode({ id, data }) {
           </select>
         </div>
 
+        {/* Limits for revolute and prismatic joints */}
+        {(d.type === "revolute" || d.type === "prismatic") && (
+          <details style={{ marginTop: ".5rem" }}>
+            <summary style={{ cursor: "pointer", fontSize: "0.9em", opacity: 0.8 }}>
+              Joint Limits (optional)
+            </summary>
+            <div style={{ display: "grid", gap: ".5rem", marginTop: ".5rem", paddingLeft: ".5rem" }}>
+              <div className="rf-field">
+                <label style={{ fontSize: "0.85em" }}>
+                  Lower Limit {d.type === "prismatic" ? "(m)" : "(rad)"}
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="rf-input"
+                  value={d.limit?.lower ?? ""}
+                  placeholder={d.type === "prismatic" ? "-1.0" : "-3.14"}
+                  onChange={(e) => edit({
+                    limit: { ...(d.limit || {}), lower: parseFloat(e.target.value) || 0 }
+                  })}
+                />
+              </div>
+              <div className="rf-field">
+                <label style={{ fontSize: "0.85em" }}>
+                  Upper Limit {d.type === "prismatic" ? "(m)" : "(rad)"}
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="rf-input"
+                  value={d.limit?.upper ?? ""}
+                  placeholder={d.type === "prismatic" ? "1.0" : "3.14"}
+                  onChange={(e) => edit({
+                    limit: { ...(d.limit || {}), upper: parseFloat(e.target.value) || 0 }
+                  })}
+                />
+              </div>
+            </div>
+          </details>
+        )}
+
         {/* Parent - collapsible */}
         <div className={`rf-field--collapsible ${isParentConnected ? 'rf-field--collapsed' : ''}`}>
-          <span className="rf-field__label">Parent Link</span>
+          <span className="rf-field__label">
+            Parent Link {!parent && !isParentConnected && <span style={{ color: "#ff9800" }}>*</span>}
+          </span>
           <div className="rf-field__input-wrapper">
             <input
               className="rf-input"
               value={parent}
               placeholder="base_link"
               onChange={(e) => onParentChange(e.target.value)}
+              style={!parent && !isParentConnected ? { borderColor: "#ff9800" } : {}}
             />
           </div>
         </div>
 
         {/* Child - collapsible */}
         <div className={`rf-field--collapsible ${isChildConnected ? 'rf-field--collapsed' : ''}`}>
-          <span className="rf-field__label">Child Link</span>
+          <span className="rf-field__label">
+            Child Link {!child && !isChildConnected && <span style={{ color: "#ff9800" }}>*</span>}
+          </span>
           <div className="rf-field__input-wrapper">
             <input
               className="rf-input"
               value={child}
               placeholder="link1"
               onChange={(e) => onChildChange(e.target.value)}
+              style={!child && !isChildConnected ? { borderColor: "#ff9800" } : {}}
             />
           </div>
         </div>
