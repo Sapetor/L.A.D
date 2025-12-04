@@ -51,7 +51,25 @@ cd LAD/lad
 if [ ! -d "../.venv" ]; then
     echo "Creating Python virtual environment..."
     python3 -m venv ../.venv
+    if [ $? -ne 0 ]; then
+        echo "ERROR: Failed to create virtual environment"
+        exit 1
+    fi
 fi
+
+# Verify venv activation script exists
+if [ ! -f "../.venv/bin/activate" ]; then
+    echo "ERROR: Virtual environment activation script not found"
+    echo "Expected location: LAD/.venv/bin/activate"
+    echo "Attempting to recreate virtual environment..."
+    rm -rf ../.venv
+    python3 -m venv ../.venv
+    if [ ! -f "../.venv/bin/activate" ]; then
+        echo "ERROR: Failed to create virtual environment properly"
+        exit 1
+    fi
+fi
+
 echo "Activating virtual environment..."
 source ../.venv/bin/activate
 echo "Installing Python packages..."

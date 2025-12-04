@@ -182,6 +182,31 @@ sudo usermod -aG docker $USER
 newgrp docker
 ```
 
+### Virtual environment activation fails
+
+**Error:** "Directory not found" when activating virtual environment
+
+**Cause:** The `.venv` directory is not committed to Git (it's in `.gitignore`), so it must be created during installation.
+
+**Solution:**
+```bash
+# Linux/Mac
+cd LAD/lad
+rm -rf ../.venv  # Remove corrupted venv if exists
+python3 -m venv ../.venv
+source ../.venv/bin/activate
+pip install -r requirements.txt
+
+# Windows
+cd LAD\lad
+rmdir /s /q ..\.venv  # Remove corrupted venv if exists
+python -m venv ..\.venv
+..\.venv\Scripts\activate.bat
+pip install -r requirements.txt
+```
+
+**Note:** The updated installer scripts now automatically check and recreate the virtual environment if the activation script is missing.
+
 ### Installation fails at database migrations
 
 ```bash

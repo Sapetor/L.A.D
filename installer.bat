@@ -53,7 +53,27 @@ cd LAD\lad
 if not exist ..\.venv (
     echo Creating Python virtual environment...
     python -m venv ..\.venv
+    if errorlevel 1 (
+        echo ERROR: Failed to create virtual environment
+        pause
+        exit /b 1
+    )
 )
+
+REM Verify venv activation script exists
+if not exist ..\.venv\Scripts\activate.bat (
+    echo ERROR: Virtual environment activation script not found
+    echo Expected location: LAD\.venv\Scripts\activate.bat
+    echo Attempting to recreate virtual environment...
+    rmdir /s /q ..\.venv 2>nul
+    python -m venv ..\.venv
+    if not exist ..\.venv\Scripts\activate.bat (
+        echo ERROR: Failed to create virtual environment properly
+        pause
+        exit /b 1
+    )
+)
+
 echo Activating virtual environment...
 call ..\.venv\Scripts\activate.bat
 echo Installing Python packages...
