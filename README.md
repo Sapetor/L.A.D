@@ -407,12 +407,6 @@ node scripts/set-ip.js <your ip>
 
 ### For Getting Started
 - **[INSTALLATION.md](AVEDU/avedu/INSTALLATION.md)** - Complete installation guide with troubleshooting
-- **[SETUP.md](AVEDU/avedu/SETUP.md)** - LAN access configuration details
-
-### For Developers
-- **[CLAUDE.md](CLAUDE.md)** - Comprehensive architecture and development guide
-- **[Backend README](LAD/README.md)** - Django backend setup and API documentation
-- **[ROS Docker README](qcar_docker/README.md)** - ROS 2 environment configuration
 
 ### For Educators
 - **Django Admin Panel** (`http://localhost:8000/admin`) - Create and manage educational content
@@ -551,13 +545,7 @@ npm start
    - Note the IP shown in terminal (e.g., `< ip>`)
    - On another device, navigate to: `http://<server ip>:3000`
 
-3. **Configure firewall** (if needed):
-   ```powershell
-   # Windows (as Administrator)
-   netsh advfirewall firewall add rule name="L.A.D Frontend" dir=in action=allow protocol=TCP localport=3000
-   netsh advfirewall firewall add rule name="L.A.D Backend" dir=in action=allow protocol=TCP localport=8000
-   netsh advfirewall firewall add rule name="L.A.D ROS" dir=in action=allow protocol=TCP localport=9090
-   ```
+
 
 ### Network Architecture
 
@@ -636,15 +624,8 @@ Contributions are welcome! Please feel free to submit issues and pull requests.
 
 ---
 
-## 🙏 Acknowledgments
 
-- Built with React, Django, and ROS 2
-- Inspired by the need for accessible robotics education
-- Thanks to the open-source robotics community
-
----
-
-## 📞 Support
+##  Support
 
 For questions, issues, or feature requests:
 - Open an issue on GitHub
@@ -655,7 +636,7 @@ For questions, issues, or feature requests:
 
 <div align="center">
 
-**Made with ❤️ for robotics education**
+
 
 [⬆ Back to Top](#lad-learn-autonomous-driving)
 
