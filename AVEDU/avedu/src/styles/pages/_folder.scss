@@ -1,10 +1,6 @@
 /* src/levels/rosbasic/slides/WorkspaceAndBuildSlide.scss */
 
-:root {
-  --glass: rgba(255, 255, 255, 0.06);
-  --border: rgba(255, 255, 255, 0.2);
-  --text: #e6f1ff;
-}
+@use '../variables' as *;
 
 .slide-wrap {
   display: grid;
@@ -16,8 +12,8 @@
 }
 
 .section-card {
-  background: var(--glass, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.2));
+  background: var(--glass);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.6rem 0.75rem;
   display: grid;
@@ -41,8 +37,8 @@
 }
 
 .tree {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.2));
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.6rem 0.75rem;
   overflow: auto;
@@ -61,13 +57,13 @@
     transition: background 0.12s ease, border-color 0.12s ease;
 
     &:hover {
-      background: rgba(125, 249, 255, 0.06);
-      border-color: rgba(125, 249, 255, 0.2);
+      background: rgba(var(--neon-rgb), 0.06);
+      border-color: rgba(var(--neon-rgb), 0.2);
     }
 
     &.is-selected {
-      background: rgba(125, 249, 255, 0.12);
-      border-color: rgba(125, 249, 255, 0.35);
+      background: rgba(var(--neon-rgb), 0.12);
+      border-color: rgba(var(--neon-rgb), 0.35);
     }
   }
 
@@ -77,8 +73,8 @@
 }
 
 .detail {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.2));
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.6rem 0.75rem;
   display: grid;
@@ -115,8 +111,8 @@
 
 .code-inline {
   margin: 0.35rem 0 0;
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 0.4rem 0.6rem;
   display: inline-block;
@@ -125,8 +121,8 @@
 .cmd-card {
   display: grid;
   gap: 0.5rem;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.2));
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.6rem 0.75rem;
 
@@ -138,9 +134,9 @@
     margin: 0;
     padding: 0.6rem 0.75rem;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(0, 0, 0, 0.35);
-    color: var(--text, #e6f1ff);
+    border: 1px solid var(--border-light);
+    background: var(--bg-surface);
+    color: var(--text);
     white-space: pre-wrap;
     word-break: break-word;
   }
@@ -155,18 +151,6 @@
   }
 }
 
-/* Opcional: si no tienes una clase .btn global, podrías activar esto
-.btn {
-  appearance: none;
-  border: 1px solid var(--border);
-  background: var(--glass);
-  color: var(--text);
-  border-radius: 10px;
-  padding: 0.4rem 0.7rem;
-  cursor: pointer;
-}
-.btn:hover { filter: brightness(1.08); }
-*/
 /* --- Fix layout: Comandos útiles dentro de .section-card--right --- */
 .section-card--right {
   /* asegura buena alineación vertical y separación */
@@ -188,7 +172,7 @@
 .section-card--right .cmd-card {
   grid-column: 2;     /* derecha */
   justify-self: end;  /* pegada a la derecha, dentro de su columna */
-  max-width: 560px;   /* evita que “flote” o se desborde */
+  max-width: 560px;   /* evita que "flote" o se desborde */
 }
 
 /* Evita overflow del bloque de código si es muy ancho */
@@ -205,5 +189,32 @@
     grid-column: 1;
     justify-self: stretch;
     max-width: none;
+  }
+}
+
+/* ========= LIGHT THEME OVERRIDES ========= */
+[data-theme="light"] {
+  .section-card {
+    background: var(--bg-secondary);
+  }
+
+  .tree {
+    background: #f8fafc;
+  }
+
+  .detail {
+    background: #f8fafc;
+  }
+
+  .code-inline {
+    background: #f8fafc;
+  }
+
+  .cmd-card {
+    background: #f8fafc;
+
+    &__code {
+      background: #ffffff;
+    }
   }
 }

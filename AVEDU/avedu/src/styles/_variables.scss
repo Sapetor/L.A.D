@@ -80,33 +80,33 @@
 // ========= LIGHT THEME =========
 [data-theme="light"] {
   // Core backgrounds - more contrast
-  --bg-primary: #f0f4f8;
+  --bg-primary: #f8fafc;
   --bg-secondary: #ffffff;
   --bg-tertiary: #e2e8f0;
   --bg-surface: #ffffff;
-  --bg-overlay: rgba(0, 0, 0, 0.06);
+  --bg-overlay: rgba(0, 0, 0, 0.08);
 
-  // Glass morphism (more visible for light)
-  --glass: rgba(255, 255, 255, 0.9);
-  --glass-hover: rgba(255, 255, 255, 0.95);
-  --glass-active: rgba(255, 255, 255, 1);
+  // Glass morphism (solid colors for light)
+  --glass: #ffffff;
+  --glass-hover: #f8fafc;
+  --glass-active: #f1f5f9;
 
-  // Borders - much more visible
-  --border: rgba(0, 0, 0, 0.2);
-  --border-light: rgba(0, 0, 0, 0.15);
-  --border-focus: rgba(0, 0, 0, 0.3);
+  // Borders - VERY visible (darker)
+  --border: rgba(0, 0, 0, 0.25);
+  --border-light: rgba(0, 0, 0, 0.18);
+  --border-focus: rgba(0, 0, 0, 0.4);
 
-  // Text colors - much darker for contrast
-  --text: #0f172a;
-  --text-dim: #334155;
-  --text-muted: #475569;
+  // Text colors - maximum contrast (pure dark)
+  --text: #020617;
+  --text-dim: #1e293b;
+  --text-muted: #334155;
   --text-inverse: #ffffff;
 
-  // Accent colors (darker/more saturated for contrast on light bg)
-  --neon: #0369a1;
-  --neon-rgb: 3, 105, 161;
-  --neon2: #be185d;
-  --neon2-rgb: 190, 24, 93;
+  // Accent colors - MUCH darker for excellent contrast on light bg
+  --neon: #1e3a8a;
+  --neon-rgb: 30, 58, 138;
+  --neon2: #9d174d;
+  --neon2-rgb: 157, 23, 77;
 
   // Status colors (adjusted for light)
   --success: #15803d;
@@ -120,28 +120,28 @@
   // IDE specific
   --ide-bg: #f1f5f9;
   --ide-bg-lighter: #ffffff;
-  --ide-border: rgba(3, 105, 161, 0.35);
-  --ide-text: #0f172a;
-  --ide-text-muted: #475569;
+  --ide-border: rgba(30, 58, 138, 0.4);
+  --ide-text: #020617;
+  --ide-text-muted: #334155;
 
   // File explorer
   --explorer-bg: #ffffff;
-  --explorer-border: rgba(0, 0, 0, 0.15);
-  --explorer-hover: rgba(3, 105, 161, 0.1);
-  --explorer-selected: rgba(3, 105, 161, 0.2);
-  --explorer-selected-border: rgba(3, 105, 161, 0.5);
+  --explorer-border: rgba(0, 0, 0, 0.2);
+  --explorer-hover: rgba(30, 58, 138, 0.1);
+  --explorer-selected: rgba(30, 58, 138, 0.2);
+  --explorer-selected-border: rgba(30, 58, 138, 0.6);
 
   // Scrollbar
-  --scrollbar-track: rgba(0, 0, 0, 0.08);
-  --scrollbar-thumb: rgba(3, 105, 161, 0.4);
-  --scrollbar-thumb-hover: rgba(3, 105, 161, 0.6);
+  --scrollbar-track: rgba(0, 0, 0, 0.1);
+  --scrollbar-thumb: rgba(30, 58, 138, 0.5);
+  --scrollbar-thumb-hover: rgba(30, 58, 138, 0.7);
 
   // Shadows (more visible for light mode)
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.08);
-  --shadow-glow: 0 0 0 3px rgba(3, 105, 161, 0.2);
-  --shadow-glow2: 0 0 0 3px rgba(190, 24, 93, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15), 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 0 3px rgba(30, 58, 138, 0.25);
+  --shadow-glow2: 0 0 0 3px rgba(157, 23, 77, 0.25);
 
   // Terminal (light terminal theme)
   --terminal-bg: #ffffff;
