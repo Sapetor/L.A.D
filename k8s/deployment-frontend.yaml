@@ -39,7 +39,8 @@ spec:
 
       containers:
         - name: frontend
-          image: registry.gitlab.com/YOUR_GROUP/lad-frontend:latest
+          # Docker Hub image - update YOUR_DOCKERHUB_USER with your username
+          image: YOUR_DOCKERHUB_USER/lad-frontend:latest
           imagePullPolicy: Always
 
           ports:

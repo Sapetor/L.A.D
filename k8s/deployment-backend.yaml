@@ -56,7 +56,8 @@ spec:
 
       containers:
         - name: backend
-          image: registry.gitlab.com/YOUR_GROUP/lad-backend:latest
+          # Docker Hub image - update YOUR_DOCKERHUB_USER with your username
+          image: YOUR_DOCKERHUB_USER/lad-backend:latest
           imagePullPolicy: Always
 
           ports:

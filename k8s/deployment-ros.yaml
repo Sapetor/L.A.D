@@ -33,7 +33,8 @@ spec:
 
       containers:
         - name: ros
-          image: registry.gitlab.com/YOUR_GROUP/lad-ros:latest
+          # Docker Hub image - update YOUR_DOCKERHUB_USER with your username
+          image: YOUR_DOCKERHUB_USER/lad-ros:latest
           imagePullPolicy: Always
 
           ports:
