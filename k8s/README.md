@@ -1,186 +1,125 @@
 # L.A.D. Kubernetes Deployment
 
-This directory contains Kubernetes manifests for deploying the L.A.D. (Learn Autonomous Driving) platform.
+Kubernetes manifests for deploying L.A.D. (Learn Autonomous Driving) platform.
 
 ## Architecture
 
-The deployment consists of three main components:
-
-1. **Frontend** - React application serving the web UI
-2. **Backend** - Django REST API with JWT authentication
-3. **ROS** - ROS 2 Humble with Gazebo simulation
-
-## Prerequisites
-
-- Kubernetes cluster (1.25+)
-- kubectl configured with cluster access
-- Container registry (GitLab Registry, Docker Hub, etc.)
-- Nginx Ingress Controller (for ingress routing)
+| Component | Description | Port |
+|-----------|-------------|------|
+| Frontend | React web UI | 3000 |
+| Backend | Django REST API | 8000 |
+| ROS | ROS 2 Humble + Gazebo | 9090, 7000, 8080 |
 
 ## Quick Start
 
-### 1. Build and Push Images
+### 1. Update Image Names
+
+Edit the deployment files and replace `YOUR_DOCKERHUB_USER` with your Docker Hub username:
 
 ```bash
-# Build all images
-./deploy-to-server.sh build-all
-
-# Push to registry
-./deploy-to-server.sh push
+# In deployment-frontend.yaml, deployment-backend.yaml, deployment-ros.yaml:
+image: YOUR_DOCKERHUB_USER/lad-frontend:latest
+# Change to:
+image: yourusername/lad-frontend:latest
 ```
 
-### 2. Configure Secrets
+Also update `update.sh`:
+```bash
+DOCKERHUB_USER="yourusername"
+```
 
-Before deploying, create actual secrets:
+### 2. Copy Files to Server
 
 ```bash
-# Create secrets with real values
-kubectl create secret generic lad-secrets \
-  --namespace=lad \
-  --from-literal=DJANGO_SECRET_KEY='your-secure-secret-key'
+# From your local machine
+scp -r k8s/ root@YOUR_SERVER_IP:/opt/lad/
 ```
 
-### 3. Deploy to Cluster
+### 3. Initial Setup (First Time Only)
+
+SSH to server and apply all manifests:
 
 ```bash
-# Apply all manifests
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/pvc.yaml
-kubectl apply -f k8s/secrets.yaml  # Or use kubectl create secret
-kubectl apply -f k8s/deployment-frontend.yaml
-kubectl apply -f k8s/deployment-backend.yaml
-kubectl apply -f k8s/deployment-ros.yaml
-kubectl apply -f k8s/service-frontend.yaml
-kubectl apply -f k8s/service-backend.yaml
-kubectl apply -f k8s/service-ros.yaml
-kubectl apply -f k8s/ingress.yaml
+ssh root@YOUR_SERVER_IP
+cd /opt/lad/k8s
+
+# Option A: Apply all at once
+kubectl apply -f .
+
+# Option B: Apply in order (recommended first time)
+kubectl apply -f namespace.yaml
+kubectl apply -f configmap.yaml
+kubectl apply -f secrets.yaml
+kubectl apply -f pvc.yaml
+kubectl apply -f deployment-frontend.yaml
+kubectl apply -f deployment-backend.yaml
+kubectl apply -f deployment-ros.yaml
+kubectl apply -f service-frontend.yaml
+kubectl apply -f service-backend.yaml
+kubectl apply -f service-ros.yaml
+kubectl apply -f ingress.yaml
+
+# Or use the helper script
+./update.sh setup
 ```
 
-Or use the deploy script:
+### 4. Updating After Code Changes
+
+After pushing to GitHub (which triggers Docker Hub build):
 
 ```bash
-./deploy-to-server.sh deploy
+ssh root@YOUR_SERVER_IP
+cd /opt/lad/k8s
+
+# Update all components (pulls latest images & restarts)
+./update.sh update
+
+# Or update specific component
+./update.sh update-frontend
+./update.sh update-backend
+./update.sh update-ros
 ```
 
-## Files Overview
+## Files
 
 | File | Description |
 |------|-------------|
-| `namespace.yaml` | Creates the `lad` namespace |
-| `configmap.yaml` | Application configuration |
-| `secrets.yaml` | Secret template (DO NOT commit real secrets!) |
-| `pvc.yaml` | Persistent volume claims for data storage |
-| `deployment-frontend.yaml` | React frontend deployment |
-| `deployment-backend.yaml` | Django backend deployment |
-| `deployment-ros.yaml` | ROS 2 simulation deployment |
-| `service-frontend.yaml` | Frontend ClusterIP service |
-| `service-backend.yaml` | Backend ClusterIP service |
-| `service-ros.yaml` | ROS ClusterIP service with session affinity |
-| `ingress.yaml` | Nginx ingress for routing |
+| `namespace.yaml` | Creates `lad` namespace |
+| `configmap.yaml` | Environment configuration |
+| `secrets.yaml` | Secret template (edit with real values!) |
+| `pvc.yaml` | Persistent storage (3 volumes) |
+| `deployment-*.yaml` | Pod deployments |
+| `service-*.yaml` | Internal services |
+| `ingress.yaml` | External routing |
+| `update.sh` | Helper script for updates |
 
-## Configuration
-
-### Update Registry Path
-
-Before deploying, update the image paths in deployment files:
-
-```yaml
-# Change from:
-image: registry.gitlab.com/YOUR_GROUP/lad-frontend:latest
-
-# To your actual registry:
-image: registry.gitlab.com/your-group/lad-frontend:latest
-```
-
-### Update Ingress Host
-
-Edit `ingress.yaml` to set your domain:
-
-```yaml
-rules:
-  - host: lad.yourdomain.com
-```
-
-### Resource Limits
-
-Adjust resource limits based on your cluster capacity:
-
-| Component | CPU Request | CPU Limit | Memory Request | Memory Limit |
-|-----------|-------------|-----------|----------------|--------------|
-| Frontend | 100m | 500m | 128Mi | 256Mi |
-| Backend | 100m | 500m | 256Mi | 512Mi |
-| ROS | 500m | 2000m | 1Gi | 4Gi |
-
-## Monitoring
-
-### Check Pod Status
+## Useful Commands
 
 ```bash
+# Check status
 kubectl -n lad get pods
+kubectl -n lad get services
+
+# View logs
+kubectl -n lad logs -f deployment/lad-frontend
+kubectl -n lad logs -f deployment/lad-backend
+kubectl -n lad logs -f deployment/lad-ros
+
+# Restart a deployment
+kubectl -n lad rollout restart deployment/lad-frontend
+
+# Describe pod (for debugging)
 kubectl -n lad describe pod <pod-name>
 ```
 
-### View Logs
+## Workflow Summary
 
-```bash
-# Frontend logs
-kubectl -n lad logs -f deployment/lad-frontend
-
-# Backend logs
-kubectl -n lad logs -f deployment/lad-backend
-
-# ROS logs
-kubectl -n lad logs -f deployment/lad-ros
 ```
-
-### Check Services
-
-```bash
-kubectl -n lad get services
-kubectl -n lad get ingress
-```
-
-## Troubleshooting
-
-### Pod Not Starting
-
-1. Check events: `kubectl -n lad describe pod <pod-name>`
-2. Check logs: `kubectl -n lad logs <pod-name>`
-3. Verify image pull: Ensure registry credentials are configured
-
-### Database Issues
-
-The backend uses SQLite by default in the persistent volume. For production, consider:
-
-1. Using PostgreSQL as a separate deployment
-2. Updating `DATABASE_URL` in secrets
-3. Adding `psycopg2-binary` to requirements (already included in Dockerfile)
-
-### ROS Not Connecting
-
-1. Verify rosbridge is running: `kubectl -n lad logs deployment/lad-ros | grep rosbridge`
-2. Check WebSocket connectivity through ingress
-3. Ensure session affinity is working for WebSocket connections
-
-## CI/CD Integration
-
-The project includes GitLab CI/CD configuration (`.gitlab-ci.yml`) that:
-
-1. Builds Docker images for all components
-2. Pushes to GitLab Container Registry
-3. Deploys to Kubernetes (staging/production)
-
-Configure these CI/CD variables in GitLab:
-
-- `KUBE_SERVER` - Kubernetes API server URL
-- `KUBE_TOKEN` - Service account token
-- `KUBE_CA_CERT` - Cluster CA certificate
-
-## Alternative: Docker Compose
-
-For simpler deployments without Kubernetes, use:
-
-```bash
-docker compose -f docker-compose.server.yml up -d
+Local: git push
+    ↓
+GitHub Actions: builds Docker images
+    ↓
+Docker Hub: stores images (yourusername/lad-*)
+    ↓
+Server: ./update.sh update (pulls & restarts)
 ```
