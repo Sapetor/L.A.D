@@ -11,7 +11,7 @@ set -e
 # =============================================================================
 
 # Docker Hub username/organization
-DOCKERHUB_USER="YOUR_DOCKERHUB_USER"
+DOCKERHUB_USER="sapetor"
 
 # Kubernetes namespace
 NAMESPACE="lad"

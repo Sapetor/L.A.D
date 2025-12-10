@@ -56,8 +56,7 @@ spec:
 
       containers:
         - name: backend
-          # Docker Hub image - update YOUR_DOCKERHUB_USER with your username
-          image: YOUR_DOCKERHUB_USER/lad-backend:latest
+          image: sapetor/lad-backend:latest
           imagePullPolicy: Always
 
           ports:

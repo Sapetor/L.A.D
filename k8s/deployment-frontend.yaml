@@ -39,8 +39,7 @@ spec:
 
       containers:
         - name: frontend
-          # Docker Hub image - update YOUR_DOCKERHUB_USER with your username
-          image: YOUR_DOCKERHUB_USER/lad-frontend:latest
+          image: sapetor/lad-frontend:latest
           imagePullPolicy: Always
 
           ports:
