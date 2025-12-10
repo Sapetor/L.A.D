@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from datetime import timedelta
 
@@ -9,15 +10,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 NETWORK_CONFIG = load_network_config()
 
 # Seguridad / Debug
-SECRET_KEY = 'django-insecure-!px)fft@n1i7)6@2&-l@ekdxz4qz$m4u8*^f23e%-d#cm=cvqn'
-DEBUG = True
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-!px)fft@n1i7)6@2&-l@ekdxz4qz$m4u8*^f23e%-d#cm=cvqn')
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = [
-    'localhost',
-    '127.0.0.1',
-    '0.0.0.0',
-    NETWORK_CONFIG.exposed_ip,
-]
+# ALLOWED_HOSTS from environment or defaults
+_allowed_hosts_env = os.environ.get('DJANGO_ALLOWED_HOSTS', '')
+if _allowed_hosts_env:
+    ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts_env.split(',') if h.strip()]
+else:
+    ALLOWED_HOSTS = [
+        'localhost',
+        '127.0.0.1',
+        '0.0.0.0',
+        NETWORK_CONFIG.exposed_ip,
+    ]
 
 # Apps
 INSTALLED_APPS = [
