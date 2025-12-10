@@ -1,6 +1,11 @@
 // src/ip.js
 import React from "react";
 
+// Check if running in Kubernetes (path-based routing via ingress)
+// When PUBLIC_URL is set (e.g., /lad), use ingress paths instead of ports
+const USE_INGRESS = process.env.PUBLIC_URL && process.env.PUBLIC_URL !== '/';
+const INGRESS_BASE = process.env.PUBLIC_URL || '';
+
 /** Config base (puedes cambiar los puertos si quieres otros defaults) */
 const DEFAULTS = {
   HOST: "localhost",
@@ -45,13 +50,40 @@ const httpScheme = () => (isHttps() ? "https" : "http");
 const makeWs = (port, path = "") => `${wsScheme()}://${CURRENT_HOST}:${port}${path}`;
 const makeHttp = (port, path = "") => `${httpScheme()}://${CURRENT_HOST}:${port}${path.replace(/^\//, "/")}`;
 
-/** Getters específicos (puertos que usas) */
-export const getRosbridgeUrl = (path = "") => makeWs(CURRENT_PORTS.ROSBRIDGE, path);   // ws(s)://HOST:9090
-export const getStaticBase = () => makeHttp(CURRENT_PORTS.STATIC);                     // http(s)://HOST:7000
-export const getApiBase = () => makeHttp(CURRENT_PORTS.API);                           // http(s)://HOST:8000
-export const getWvsBase = () => makeHttp(CURRENT_PORTS.WVS);                           // http(s)://HOST:8080
+/** Getters específicos - use ingress paths in Kubernetes, ports in local dev */
+export const getRosbridgeUrl = (path = "") => {
+  if (USE_INGRESS) {
+    // Kubernetes: use ingress path
+    return `${wsScheme()}://${window.location.host}${INGRESS_BASE}/rosbridge${path}`;
+  }
+  return makeWs(CURRENT_PORTS.ROSBRIDGE, path);
+};
 
-/** Componente “una línea”: fija HOST y puertos para toda la app */
+export const getStaticBase = () => {
+  if (USE_INGRESS) {
+    // Kubernetes: use ingress path for ROS static files
+    return `${INGRESS_BASE}/ros-static`;
+  }
+  return makeHttp(CURRENT_PORTS.STATIC);
+};
+
+export const getApiBase = () => {
+  if (USE_INGRESS) {
+    // Kubernetes: use ingress path
+    return `${INGRESS_BASE}/api`;
+  }
+  return makeHttp(CURRENT_PORTS.API);
+};
+
+export const getWvsBase = () => {
+  if (USE_INGRESS) {
+    // Kubernetes: use ingress path
+    return `${INGRESS_BASE}/wvs`;
+  }
+  return makeHttp(CURRENT_PORTS.WVS);
+};
+
+/** Componente "una línea": fija HOST y puertos para toda la app */
 export function IP({ host, ports = {}, children }) {
   if (host) CURRENT_HOST = host;
   CURRENT_PORTS = { ...CURRENT_PORTS, ...ports };
