@@ -7,6 +7,8 @@ import { apiFetch } from "../context/AuthContext";
 import { API_BASE } from "../config";
 import { ProgressProvider } from "../context/ProgressContext";
 import ThemeToggle from "../components/ThemeToggle";
+import InteractiveTutorial from "../components/InteractiveTutorial";
+import { tutorialSteps } from "../config/tutorialSteps";
 import "../styles/pages/_learn.scss";
 
 const DEBUG = true;
@@ -71,6 +73,22 @@ export default function Learn() {
     () => `learn-layout${open ? "" : " learn-layout--collapsed"}`,
     [open]
   );
+
+  // Tutorial state (persisted)
+  const [showTutorial, setShowTutorial] = useState(() => {
+    const completed = localStorage.getItem("tutorial.completed");
+    return completed !== "true";
+  });
+
+  const handleTutorialComplete = useCallback(() => {
+    localStorage.setItem("tutorial.completed", "true");
+    setShowTutorial(false);
+  }, []);
+
+  const handleTutorialSkip = useCallback(() => {
+    localStorage.setItem("tutorial.completed", "true");
+    setShowTutorial(false);
+  }, []);
 
   // Abort refs
   const abortUnitsRef = useRef(null);
@@ -178,29 +196,72 @@ export default function Learn() {
 
   return (
     <ProgressProvider>
+      {/* Interactive Tutorial */}
+      {showTutorial && (
+        <InteractiveTutorial
+          steps={tutorialSteps}
+          onComplete={handleTutorialComplete}
+          onSkip={handleTutorialSkip}
+        />
+      )}
+
       <div className={layoutClass}>
-        {/* Theme Toggle - Fixed position */}
-        <div style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1000 }}>
+        {/* Theme Toggle & Tutorial Restart - Fixed position */}
+        <div style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 1000, display: 'flex', gap: '.5rem', alignItems: 'center' }}>
+          <button
+            className="learn-toggle"
+            onClick={() => setShowTutorial(true)}
+            title="Restart tutorial"
+            aria-label="Restart tutorial"
+            style={{ fontSize: '1.2rem' }}
+          >
+            ?
+          </button>
           <ThemeToggle />
         </div>
 
+        {/* Floating toggle button (appears when sidebar is collapsed) */}
+        <button
+          className="learn-toggle learn-toggle--floating"
+          onClick={toggle}
+          aria-label="Open sidebar"
+          title="Open sidebar"
+        >
+          ☰
+        </button>
+
         {/* Sidebar */}
         <aside className="learn-sidebar">
-          <button className="toggle" onClick={toggle} aria-label="Toggle sidebar" />
+          <div className="learn-sidebar__header">
+            <h2>{currentUnit ? 'Levels' : 'Units'}</h2>
+            <button
+              className="learn-toggle"
+              onClick={toggle}
+              aria-label="Close sidebar"
+              title="Close sidebar"
+            >
+              ✕
+            </button>
+          </div>
           {currentUnit ? (
-            <ul>
-              {currentUnit.levels?.map((l) => (
-                <li key={l.slug}>
-                  <NavLink
-                    to={`/learn/${currentUnit.slug}/${l.slug}`}
-                    className={({ isActive }) => (isActive ? "active" : undefined)}
-                  >
-                    {l.title}
-                  </NavLink>
-                  {l.user_progress?.completed && <span className="badge">✔</span>}
-                </li>
-              ))}
-            </ul>
+            <>
+              <NavLink to="/learn" className="sidebar-back-button">
+                ← Back to Units
+              </NavLink>
+              <ul>
+                {currentUnit.levels?.map((l) => (
+                  <li key={l.slug}>
+                    <NavLink
+                      to={`/learn/${currentUnit.slug}/${l.slug}`}
+                      className={({ isActive }) => (isActive ? "active" : undefined)}
+                    >
+                      {l.title}
+                    </NavLink>
+                    {l.user_progress?.completed && <span className="badge">✔</span>}
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : (
             <ul>
               {mergedUnits.map((u) => (

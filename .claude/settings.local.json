@@ -2,7 +2,22 @@
   "permissions": {
     "allow": [
       "Bash(python manage.py makemigrations:*)",
-      "Bash(python manage.py migrate:*)"
+      "Bash(python manage.py migrate:*)",
+      "Bash(python manage.py load_curriculum:*)",
+      "Bash(python manage.py:*)",
+      "Bash(mkdir:*)",
+      "Bash(dir:*)",
+      "Bash(npm install:*)",
+      "Bash(npm start)",
+      "Bash(grep:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker inspect:*)",
+      "Bash(python:*)",
+      "Bash(docker cp:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

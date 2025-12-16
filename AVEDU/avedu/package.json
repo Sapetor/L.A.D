@@ -19,6 +19,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.1",
+    "react-unity-webgl": "^10.1.6",
     "reactflow": "^11.11.4",
     "ros3d": "^1.1.0",
     "roslib": "^1.4.1",

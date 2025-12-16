@@ -53,6 +53,33 @@
     h2 { flex: 1; margin: 0; letter-spacing: .28em; text-transform: uppercase; font-size: 1rem; opacity:.9; }
   }
 
+  .sidebar-back-button {
+    display: block;
+    text-decoration: none;
+    color: var(--text);
+    background: var(--glass);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: .7rem .9rem;
+    margin-bottom: .75rem;
+    font-size: .95rem;
+    font-weight: 500;
+    letter-spacing: .05em;
+    transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+    outline: none;
+
+    &:hover {
+      transform: translateY(-1px);
+      border-color: rgba(var(--neon-rgb),.5);
+      box-shadow: 0 6px 18px rgba(var(--neon-rgb),.18), 0 0 24px rgba(var(--neon2-rgb),.12) inset;
+    }
+
+    &:focus-visible {
+      border-color: var(--neon2);
+      box-shadow: 0 0 0 3px rgba(var(--neon2-rgb),.28);
+    }
+  }
+
   ul {
     list-style: none;
     padding: 0; margin: 0;
@@ -107,6 +134,10 @@
   .learn-sidebar {
     background: var(--bg-secondary);
     box-shadow: var(--shadow-md);
+
+    .sidebar-back-button:hover {
+      box-shadow: var(--shadow-sm);
+    }
 
     li a:hover {
       box-shadow: var(--shadow-sm);
