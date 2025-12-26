@@ -2,7 +2,7 @@
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 // Import educational slides for this level
-import CreatingSubscribers from "./slidesROS2Concepts/06-CreatingSubscribers";
+import CreatingSubscribers from "./slidesROS2Concepts/06-CreatingSubscribers-NEW";
 import MessageFlow from "./slidesROS2Concepts/07-MessageFlow";
 
 const SLIDES = [

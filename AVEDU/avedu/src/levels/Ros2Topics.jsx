@@ -3,7 +3,7 @@ import React, { Suspense, useCallback, useEffect, useMemo, useState } from "reac
 
 // Import educational slides for this level
 import WhatAreTopics from "./slidesROS2Concepts/04-WhatAreTopics";
-import CreatingPublishers from "./slidesROS2Concepts/05-CreatingPublishers";
+import CreatingPublishers from "./slidesROS2Concepts/05-CreatingPublishers-NEW";
 
 const SLIDES = [
   {

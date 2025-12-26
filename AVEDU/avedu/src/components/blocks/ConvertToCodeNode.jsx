@@ -34,10 +34,50 @@ export default function ConvertToCodeNode({ data, id }) {
 
     try {
       // Ensure filename has .py extension
-      const finalFileName = fileName.endsWith(".py") ? fileName : `${fileName}.py`;
+      let finalFileName = fileName.endsWith(".py") ? fileName : `${fileName}.py`;
+
+      // Normalize path separators (handle both / and \)
+      finalFileName = finalFileName.replace(/\\/g, '/');
+
+      // Remove leading slash if present
+      if (finalFileName.startsWith('/')) {
+        finalFileName = finalFileName.substring(1);
+      }
+
       const filePath = finalFileName;
 
       console.log("[Convert2Code] Saving file:", { canvasId, filePath, contentLength: preview.length });
+
+      // Create parent directories if the path has subdirectories
+      const pathParts = filePath.split('/');
+      if (pathParts.length > 1) {
+        // Need to create parent directories
+        const dirs = pathParts.slice(0, -1); // All parts except the filename
+        let currentPath = '';
+
+        for (const dir of dirs) {
+          currentPath = currentPath ? `${currentPath}/${dir}` : dir;
+
+          // Check if directory exists
+          try {
+            const files = await listFiles(canvasId);
+            const dirExists = files.some((f) => f.path === currentPath && f.file_type === "directory");
+
+            if (!dirExists) {
+              console.log("[Convert2Code] Creating directory:", currentPath);
+              await createFile(canvasId, {
+                path: currentPath,
+                file_type: "directory",
+              });
+            }
+          } catch (dirError) {
+            console.warn("[Convert2Code] Error checking/creating directory:", currentPath, dirError);
+            // Continue anyway - backend might handle it
+          }
+        }
+      }
+
+      console.log("[Convert2Code] Parent directories ready, saving file:", filePath);
 
       // Try to check if file exists, but don't fail if listFiles doesn't work
       let existingFile = null;
@@ -50,24 +90,25 @@ export default function ConvertToCodeNode({ data, id }) {
         console.warn("[Convert2Code] Could not list files, will try to create:", listError);
       }
 
+      // TODO: Metadata feature disabled until backend supports it
       // Get current block graph to save as metadata
-      let blockGraph = null;
-      if (getGraphSnapshot) {
-        blockGraph = getGraphSnapshot();
-        console.log("[Convert2Code] Captured block graph:", blockGraph);
-      }
+      // let blockGraph = null;
+      // if (getGraphSnapshot) {
+      //   blockGraph = getGraphSnapshot();
+      //   console.log("[Convert2Code] Captured block graph:", blockGraph);
+      // }
 
       if (existingFile) {
         // Update existing file
         console.log("[Convert2Code] Updating existing file:", existingFile.id);
         await updateFile(canvasId, existingFile.id, {
           content: preview,
-          // Store block graph as metadata so we can reconstruct blocks later
-          metadata: blockGraph ? JSON.stringify({
-            isBlockGenerated: true,
-            blockGraph: blockGraph,
-            generatedAt: new Date().toISOString(),
-          }) : undefined,
+          // TODO: Add metadata field to backend WorkspaceFile model
+          // metadata: blockGraph ? JSON.stringify({
+          //   isBlockGenerated: true,
+          //   blockGraph: blockGraph,
+          //   generatedAt: new Date().toISOString(),
+          // }) : undefined,
         });
         setSaveStatus(`✅ Updated ${finalFileName}`);
       } else {
@@ -77,12 +118,12 @@ export default function ConvertToCodeNode({ data, id }) {
           path: filePath,
           content: preview,
           file_type: "file",
-          // Store block graph as metadata
-          metadata: blockGraph ? JSON.stringify({
-            isBlockGenerated: true,
-            blockGraph: blockGraph,
-            generatedAt: new Date().toISOString(),
-          }) : undefined,
+          // TODO: Add metadata field to backend WorkspaceFile model
+          // metadata: blockGraph ? JSON.stringify({
+          //   isBlockGenerated: true,
+          //   blockGraph: blockGraph,
+          //   generatedAt: new Date().toISOString(),
+          // }) : undefined,
         };
         console.log("[Convert2Code] Create data:", createData);
 
@@ -107,10 +148,20 @@ export default function ConvertToCodeNode({ data, id }) {
         message: error.message,
         stack: error.stack,
         canvasId,
-        fileName
+        fileName,
+        response: error.response?.data,
+        status: error.response?.status
       });
-      setSaveStatus(`❌ Error: ${error.message}`);
-      setTimeout(() => setSaveStatus(""), 5000);
+
+      let errorMsg = error.message;
+      if (error.response?.status === 500) {
+        errorMsg = "Server error. Check that the package exists and path is valid.";
+      } else if (error.response?.data?.error) {
+        errorMsg = error.response.data.error;
+      }
+
+      setSaveStatus(`❌ Error: ${errorMsg}`);
+      setTimeout(() => setSaveStatus(""), 8000); // Longer timeout for error messages
     } finally {
       setSaving(false);
     }

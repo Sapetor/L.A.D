@@ -5,7 +5,6 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from "react"
 import { Outlet, NavLink, useParams } from "react-router-dom";
 import { apiFetch } from "../context/AuthContext";
 import { API_BASE } from "../config";
-import { ProgressProvider } from "../context/ProgressContext";
 import ThemeToggle from "../components/ThemeToggle";
 import InteractiveTutorial from "../components/InteractiveTutorial";
 import { tutorialSteps } from "../config/tutorialSteps";
@@ -195,7 +194,7 @@ export default function Learn() {
   );
 
   return (
-    <ProgressProvider>
+    <>
       {/* Interactive Tutorial */}
       {showTutorial && (
         <InteractiveTutorial
@@ -292,6 +291,6 @@ export default function Learn() {
           )}
         </main>
       </div>
-    </ProgressProvider>
+    </>
   );
 }

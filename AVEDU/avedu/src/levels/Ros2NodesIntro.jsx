@@ -4,7 +4,7 @@ import React, { Suspense, useCallback, useEffect, useMemo, useState } from "reac
 // Import educational slides for this level
 import WhatAreNodes from "./slidesROS2Concepts/01-WhatAreNodes";
 import NodeExamples from "./slidesROS2Concepts/02-NodeExamples";
-import CreatingPackageInteractive from "./slidesROS2Concepts/03-CreatingPackageInteractive";
+import CreatingPackageInteractive from "./slidesROS2Concepts/03-CreatingPackageInteractive-NEW";
 
 const SLIDES = [
   {

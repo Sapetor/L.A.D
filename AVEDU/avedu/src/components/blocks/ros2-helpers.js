@@ -52,7 +52,8 @@ function buildCreatePkgCmd(pkgData) {
   const nodePart = nodeName ? ` --node-name ${nodeName}` : "";
   const pkgPart = pkgName || "my_ros2_package";
 
-  return `ros2 pkg create --build-type ${bt}${nodePart} ${pkgPart}${depsPart}`;
+  // Create src directory if it doesn't exist, then create package inside it
+  return `mkdir -p src && cd src && ros2 pkg create --build-type ${bt}${nodePart} ${pkgPart}${depsPart}`;
 }
 
 /**

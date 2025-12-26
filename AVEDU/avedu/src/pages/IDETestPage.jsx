@@ -4,18 +4,21 @@
 // =============================================================
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { BlockCanvas } from "../components/ide/BlockCanvas";
 import { FileExplorer } from "../components/ide/FileExplorer";
 import { TabBar } from "../components/ide/TabBar";
 import { Terminal } from "../components/ide/Terminal";
 import { URDFViewer } from "../components/ide/URDFViewer";
 import { CodeEditor } from "../components/ide/CodeEditor";
+import IDETutorial from "../components/ide/IDETutorial";
 import { CategorizedPalette } from "../components/blocks";
 import { paletteCategorized } from "../components/blocks";
 import { computeUrdfXml } from "../components/blocks/urdf-helpers";
 import CanvasSelector from "../components/ide/CanvasSelector";
 import ThemeToggle from "../components/ThemeToggle";
+import { useProgress } from "../context/ProgressContext";
+import ideTutorials from "../config/ideTutorials";
 import fileApi from "../services/fileApi";
 import "../styles/_rosflow.scss";
 import "../styles/pages/_ide-test.scss";
@@ -23,6 +26,31 @@ import "../styles/components/_canvas-selector.scss";
 
 function IDETestPageInner() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { hitObjective } = useProgress();
+
+  // Get tutorial configuration from location state
+  const { tutorialType, objectiveCode } = location.state || {};
+  const tutorial = tutorialType ? ideTutorials[tutorialType] : null;
+
+  // Handle tutorial completion
+  const handleTutorialComplete = useCallback(() => {
+    console.log(`[IDE Tutorial] Completed: ${tutorialType}`);
+
+    // Mark objective as completed
+    if (objectiveCode && hitObjective) {
+      hitObjective(objectiveCode);
+    }
+
+    // Navigate back to learning page
+    navigate(-1); // Go back to previous page
+  }, [tutorialType, objectiveCode, hitObjective, navigate]);
+
+  // Handle tutorial skip
+  const handleTutorialSkip = useCallback(() => {
+    console.log(`[IDE Tutorial] Skipped: ${tutorialType}`);
+    navigate(-1); // Go back to previous page
+  }, [tutorialType, navigate]);
 
   // Canvas state
   const [canvas, setCanvas] = useState(null);
@@ -624,7 +652,7 @@ function IDETestPageInner() {
         stack: error.stack,
         currentFile,
         editorMode,
-        hasContent: !!content,
+        hasContent: editorMode === "text" ? !!textContent : !!fileContents[currentFile],
       });
       alert(`Failed to save file: ${error.message}\n\nCheck console for details.`);
     }
@@ -738,6 +766,8 @@ function IDETestPageInner() {
     }
 
     try {
+      // Execute commands in workspace root (will default to canvas.docker_path on backend)
+      // This ensures ros2 pkg create works in the proper src/ directory
       const result = await fileApi.executeCommand(canvas.id, command);
 
       // Send output to terminal
@@ -747,10 +777,17 @@ function IDETestPageInner() {
       if (result.error) {
         callback?.(`\x1b[31m${result.error}\x1b[0m`); // Red color for errors
       }
+
+      // Auto-refresh file tree after certain commands that modify the filesystem
+      const shouldRefresh = command.match(/^(ros2 pkg create|mkdir|touch|rm|mv|cp|colcon build)/);
+      if (shouldRefresh) {
+        console.log("[IDE] Auto-refreshing file tree after command:", command);
+        setTimeout(() => refreshFileTree(true), 1000); // Force refresh after 1 second
+      }
     } catch (error) {
       callback?.(`Error: ${error.message}`);
     }
-  }, [canvas]);
+  }, [canvas, refreshFileTree]);
 
   // Handle execute from ConvertToCodeNode - opens terminal and runs command
   const handleExecuteFromNode = useCallback((command) => {
@@ -916,7 +953,7 @@ function IDETestPageInner() {
             {showTerminal ? (
               <Terminal
                 onCommandExecute={handleCommandExecute}
-                workingDirectory="/workspace"
+                workingDirectory="~"
                 username="developer"
                 canvasId={canvas?.id || "workspace"}
               />
@@ -975,6 +1012,7 @@ function IDETestPageInner() {
                     />
                   ) : (
                     <CodeEditor
+                      key={currentFile} // Force re-render when switching files
                       content={textContent}
                       language={detectLanguage(currentFile)}
                       onChange={handleTextChange}
@@ -1035,6 +1073,16 @@ function IDETestPageInner() {
           <strong>⚠️ Status:</strong> Test mode - Backend integration pending
         </div>
       </div>
+
+      {/* Tutorial Overlay */}
+      {tutorial && tutorial.length > 0 && (
+        <IDETutorial
+          steps={tutorial}
+          onComplete={handleTutorialComplete}
+          onSkip={handleTutorialSkip}
+          autoStart={true}
+        />
+      )}
     </div>
   );
 }
