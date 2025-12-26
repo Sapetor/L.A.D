@@ -3,6 +3,8 @@
 
 import CreatePackageNode from "./CreatePackageNode";
 import RosRunNode from "./RosRunNode";
+import RosPublisherNode from "./RosPublisherNode";
+import RosSubscriberNode from "./RosSubscriberNode";
 import StringNode from "./StringNode";
 import ListItemsNode from "./ListItemsNode";
 import ConvertToCodeNode from "./ConvertToCodeNode";
@@ -34,6 +36,8 @@ export const nodeTypes = {
   // ROS blocks
   createPackage: CreatePackageNode,
   rosRun: RosRunNode,
+  rosPublisher: RosPublisherNode,
+  rosSubscriber: RosSubscriberNode,
   string: StringNode,
   text: StringNode, // Alias for generic text node
   listArgs: ListItemsNode,
@@ -108,6 +112,8 @@ export const paletteCategorized = {
   ROS: [
     { type: "createPackage", label: "Create Package" },
     { type: "rosRun", label: "ROS Run" },
+    { type: "rosPublisher", label: "ROS2 Publisher" },
+    { type: "rosSubscriber", label: "ROS2 Subscriber" },
   ],
   URDF: [
     { type: "urdfInertial", label: "Inertial" },
@@ -168,6 +174,29 @@ export function defaultDataFor(typeOrPreset) {
 
   if (typeOrPreset === "toCode")
     return { inCount: 0, preview: "" };
+
+  if (typeOrPreset === "rosPublisher")
+    return {
+      publisherName: "publisher_node",
+      topicName: "/chatter",
+      msgPackage: "std_msgs",
+      msgType: "String",
+      frequency: "1.0",
+      dataInput: "",
+      queueSize: "10",
+      expanded: true,
+    };
+
+  if (typeOrPreset === "rosSubscriber")
+    return {
+      subscriberName: "subscriber_node",
+      topicName: "/chatter",
+      msgPackage: "std_msgs",
+      msgType: "String",
+      queueSize: "10",
+      lastMessage: "",
+      expanded: true,
+    };
 
   // -------- nuevos URDF --------
   if (typeOrPreset === "urdfLink")

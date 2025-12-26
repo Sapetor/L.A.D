@@ -20,6 +20,11 @@ import VdCenterOfRotation from "../levels/VdCenterOfRotation";
 import VdAckermann from "../levels/VdAckermann";
 import VdBicycleModel from "../levels/VdBicycleModel";
 import VdSimulations from "../levels/VdSimulations";
+// ROS2 Concepts Levels
+import Ros2NodesIntro from "../levels/Ros2NodesIntro";
+import Ros2Topics from "../levels/Ros2Topics";
+import Ros2Subscriptions from "../levels/Ros2Subscriptions";
+import Ros2MiniGames from "../levels/Ros2MiniGames";
 
 const DEBUG = true;
 
@@ -37,6 +42,11 @@ const REGISTRY = Object.freeze({
   "vd-ackermann": VdAckermann,
   "vd-bicycle-model": VdBicycleModel,
   "vd-simulations": VdSimulations,
+  // ROS2 Concepts Unit Levels
+  "ros2-nodes-intro": Ros2NodesIntro,
+  "ros2-topics": Ros2Topics,
+  "ros2-subscriptions": Ros2Subscriptions,
+  "ros2-mini-games": Ros2MiniGames,
 });
 
 export default function LearnLevel() {

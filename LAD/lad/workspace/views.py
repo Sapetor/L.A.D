@@ -3,10 +3,15 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.core.cache import cache
 import subprocess
 import os
 import json
 import shlex
+import threading
+import queue
+import uuid
+import time
 
 from .models import Canvas, WorkspaceFile, CustomMesh
 from .serializers import CanvasSerializer, WorkspaceFileSerializer, FileTreeSerializer, CustomMeshSerializer
@@ -15,6 +20,12 @@ import requests
 
 # Docker container name for workspace operations
 DOCKER_CONTAINER = "qcar_docker-ros-1"
+
+# Cache timeout for file trees (in seconds)
+FILE_TREE_CACHE_TIMEOUT = 3600  # 1 hour
+
+# Global storage for running processes
+RUNNING_PROCESSES = {}
 
 
 class CanvasViewSet(viewsets.ModelViewSet):
@@ -34,42 +45,249 @@ class CanvasViewSet(viewsets.ModelViewSet):
     def file_tree(self, request, pk=None):
         """
         Get the file tree structure for this canvas
+        Merges database files with actual Docker filesystem
+
+        Query Parameters:
+        - refresh: Set to 'true' to force refresh from Docker (default: false)
+
         Returns hierarchical structure similar to FileExplorer component
         """
-        canvas = self.get_object()
-        files = canvas.files.all()
+        try:
+            canvas = self.get_object()
+            force_refresh = request.query_params.get('refresh', 'false').lower() == 'true'
 
-        # Build tree structure
-        tree = self._build_tree(files)
+            # Generate cache key for this canvas
+            cache_key = f"file_tree_{canvas.id}"
 
-        serializer = FileTreeSerializer(tree, many=True)
-        return Response(serializer.data)
+            # Try to get cached tree if not forcing refresh
+            if not force_refresh:
+                cached_tree = cache.get(cache_key)
+                if cached_tree is not None:
+                    print(f"[FileTree] Returning cached tree for canvas {canvas.id}")
+                    return Response(cached_tree)
+
+            print(f"[FileTree] Building fresh tree for canvas {canvas.id} (refresh={force_refresh})")
+
+            # Get files from Docker filesystem
+            docker_files = self._scan_docker_filesystem(canvas)
+            print(f"[FileTree] Found {len(docker_files)} files in Docker")
+
+            # Get files from database
+            db_files = list(canvas.files.all())
+            print(f"[FileTree] Found {len(db_files)} files in database")
+
+            # Merge both sources (Docker filesystem takes precedence for existence)
+            merged_files = self._merge_file_sources(docker_files, db_files)
+            print(f"[FileTree] Merged into {len(merged_files)} files")
+
+            # Build tree structure
+            tree = self._build_tree(merged_files)
+            print(f"[FileTree] Built tree with {len(tree)} root items")
+
+            serializer = FileTreeSerializer(tree, many=True)
+            tree_data = serializer.data
+
+            # Cache the tree
+            cache.set(cache_key, tree_data, FILE_TREE_CACHE_TIMEOUT)
+            print(f"[FileTree] Cached tree for {FILE_TREE_CACHE_TIMEOUT}s")
+
+            return Response(tree_data)
+
+        except Exception as e:
+            print(f"[FileTree] ERROR: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+            # Fall back to database-only files if Docker scanning fails
+            try:
+                db_files = list(canvas.files.all())
+                tree = self._build_tree(db_files)
+                serializer = FileTreeSerializer(tree, many=True)
+                return Response(serializer.data)
+            except Exception as fallback_error:
+                print(f"[FileTree] Fallback also failed: {str(fallback_error)}")
+                return Response([], status=status.HTTP_200_OK)
+
+    def _invalidate_file_tree_cache(self, canvas_id):
+        """Invalidate the file tree cache for a canvas"""
+        cache_key = f"file_tree_{canvas_id}"
+        cache.delete(cache_key)
+        print(f"[FileTree] Cache invalidated for canvas {canvas_id}")
+
+    def _scan_docker_filesystem(self, canvas):
+        """Scan Docker container filesystem and return list of files"""
+        docker_path = canvas.docker_path
+        files = []
+
+        try:
+            print(f"[Docker Scan] Checking container: {DOCKER_CONTAINER}")
+            print(f"[Docker Scan] Workspace path: {docker_path}")
+
+            # Check if Docker container is running
+            check_container = subprocess.run(
+                ["docker", "ps", "--filter", f"name={DOCKER_CONTAINER}", "--format", "{{.Names}}"],
+                capture_output=True,
+                text=True
+            )
+
+            if DOCKER_CONTAINER not in check_container.stdout:
+                print(f"[Docker Scan] Container '{DOCKER_CONTAINER}' is not running!")
+                print(f"[Docker Scan] Available containers: {check_container.stdout}")
+                return []
+
+            # Create workspace directory if it doesn't exist
+            mkdir_result = subprocess.run(
+                ["docker", "exec", DOCKER_CONTAINER, "mkdir", "-p", docker_path],
+                capture_output=True,
+                text=True
+            )
+
+            if mkdir_result.returncode != 0:
+                print(f"[Docker Scan] Failed to create directory: {mkdir_result.stderr}")
+
+            # Use find command to list all files and directories
+            result = subprocess.run(
+                ["docker", "exec", DOCKER_CONTAINER, "find", docker_path, "-mindepth", "1"],
+                capture_output=True,
+                text=True
+            )
+
+            if result.returncode != 0:
+                print(f"[Docker Scan] Find command failed: {result.stderr}")
+                return []
+
+            if result.stdout:
+                lines = [line for line in result.stdout.strip().split('\n') if line]
+                print(f"[Docker Scan] Found {len(lines)} items")
+
+                for full_path in lines:
+                    # Get relative path from canvas root
+                    if full_path.startswith(docker_path + "/"):
+                        rel_path = full_path.replace(docker_path + "/", "")
+                    elif full_path == docker_path:
+                        continue  # Skip the root directory itself
+                    else:
+                        rel_path = full_path  # Fallback
+
+                    # Check if it's a directory or file
+                    is_dir_result = subprocess.run(
+                        ["docker", "exec", DOCKER_CONTAINER, "test", "-d", full_path],
+                        capture_output=True
+                    )
+                    is_directory = (is_dir_result.returncode == 0)
+
+                    # Create file object
+                    file_obj = {
+                        'path': rel_path,
+                        'file_type': 'directory' if is_directory else 'file',
+                        'source': 'docker',
+                    }
+
+                    files.append(file_obj)
+                    print(f"[Docker Scan] Added: {rel_path} ({'dir' if is_directory else 'file'})")
+
+        except subprocess.CalledProcessError as e:
+            error_msg = e.stderr.decode() if e.stderr else str(e)
+            print(f"[Docker Scan] CalledProcessError: {error_msg}")
+        except Exception as e:
+            print(f"[Docker Scan] Unexpected error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+        return files
+
+    def _merge_file_sources(self, docker_files, db_files):
+        """Merge files from Docker and database, preferring Docker for existence"""
+        # Create a dict of Docker files by path
+        docker_dict = {f['path']: f for f in docker_files}
+
+        # Create a dict of DB files by path
+        db_dict = {f.path: f for f in db_files}
+
+        # Merge: start with all Docker files
+        merged = []
+        for path, docker_file in docker_dict.items():
+            # If file exists in DB, use DB object (has content, metadata)
+            if path in db_dict:
+                merged.append(db_dict[path])
+            else:
+                # File exists in Docker but not in DB, create a pseudo-object
+                class DockerFile:
+                    def __init__(self, path, file_type):
+                        self.path = path
+                        self.file_type = file_type
+                        self.content = None
+                        self.source = 'docker'
+
+                merged.append(DockerFile(path, docker_file['file_type']))
+
+        # Add DB files that don't exist in Docker (shouldn't happen normally)
+        for path, db_file in db_dict.items():
+            if path not in docker_dict:
+                merged.append(db_file)
+
+        return merged
 
     def _build_tree(self, files):
         """Build hierarchical tree from flat file list"""
         tree = {}
 
         for file in files:
-            parts = file.path.split("/")
+            # Get file_type from either attribute or dict
+            if hasattr(file, 'file_type'):
+                file_type = file.file_type
+            elif isinstance(file, dict):
+                file_type = file.get('file_type', 'file')
+            else:
+                file_type = 'file'
+
+            # Get path
+            if hasattr(file, 'path'):
+                file_path = file.path
+            elif isinstance(file, dict):
+                file_path = file.get('path', '')
+            else:
+                continue  # Skip if no path
+
+            parts = file_path.split("/")
             current = tree
 
             for i, part in enumerate(parts):
+                if not part:  # Skip empty parts
+                    continue
+
                 path = "/".join(parts[: i + 1])
+                is_last = i == len(parts) - 1
 
                 if part not in current:
-                    is_last = i == len(parts) - 1
                     current[part] = {
                         "name": part,
                         "path": path,
-                        "type": file.file_type if is_last else "directory",
+                        "type": file_type if is_last else "directory",
                         "children": {} if not is_last else None,
                     }
+                else:
+                    # Node already exists
+                    # If this is the last part and current node is a directory, update it
+                    if is_last and current[part]["type"] == "directory" and file_type == "file":
+                        current[part]["type"] = "file"
+                        current[part]["children"] = None
 
+                # Move to next level
                 if i < len(parts) - 1:
+                    # Ensure children dict exists (convert file to directory if needed)
+                    if current[part]["children"] is None:
+                        print(f"[BuildTree] Converting {current[part]['path']} from file to directory")
+                        current[part]["children"] = {}
+                        current[part]["type"] = "directory"
+
                     current = current[part]["children"]
 
         # Convert dict to list
         def dict_to_list(node_dict):
+            if node_dict is None:
+                return []
+
             result = []
             for key, value in node_dict.items():
                 item = {
@@ -77,7 +295,7 @@ class CanvasViewSet(viewsets.ModelViewSet):
                     "path": value["path"],
                     "type": value["type"],
                 }
-                if value["children"] is not None:
+                if value.get("children") is not None:
                     item["children"] = dict_to_list(value["children"])
                 result.append(item)
             return result
@@ -108,15 +326,96 @@ class WorkspaceFileViewSet(viewsets.ModelViewSet):
         # Write to Docker volume
         self._write_to_docker(file_instance)
 
+        # Invalidate file tree cache
+        self._invalidate_file_tree_cache(canvas_id)
+
     def perform_update(self, serializer):
         file_instance = serializer.save()
         # Update Docker file
         self._write_to_docker(file_instance)
 
+        # Invalidate file tree cache
+        self._invalidate_file_tree_cache(file_instance.canvas_id)
+
     def perform_destroy(self, instance):
+        canvas_id = instance.canvas_id
+
         # Delete from Docker
         self._delete_from_docker(instance)
         instance.delete()
+
+        # Invalidate file tree cache
+        self._invalidate_file_tree_cache(canvas_id)
+
+    def _invalidate_file_tree_cache(self, canvas_id):
+        """Invalidate the file tree cache for a canvas"""
+        cache_key = f"file_tree_{canvas_id}"
+        cache.delete(cache_key)
+        print(f"[FileTree] Cache invalidated for canvas {canvas_id}")
+
+    @action(detail=False, methods=["post"])
+    def read_from_docker(self, request, canvas_pk=None):
+        """
+        Read file content directly from Docker filesystem
+        Used for files that exist in Docker but not in database yet
+
+        Request body:
+        {
+            "path": "relative/path/to/file.py"
+        }
+
+        Response:
+        {
+            "path": "relative/path/to/file.py",
+            "content": "file contents...",
+            "file_type": "file"
+        }
+        """
+        canvas = get_object_or_404(Canvas, id=canvas_pk, user=request.user)
+        file_path = request.data.get("path")
+
+        if not file_path:
+            return Response(
+                {"error": "Path is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Construct full Docker path
+        full_docker_path = f"{canvas.docker_path}/{file_path}"
+
+        try:
+            # Check if file exists
+            check_result = subprocess.run(
+                ["docker", "exec", DOCKER_CONTAINER, "test", "-f", full_docker_path],
+                capture_output=True
+            )
+
+            if check_result.returncode != 0:
+                return Response(
+                    {"error": f"File not found: {file_path}"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Read file content
+            result = subprocess.run(
+                ["docker", "exec", DOCKER_CONTAINER, "cat", full_docker_path],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+
+            return Response({
+                "path": file_path,
+                "content": result.stdout,
+                "file_type": "file"
+            })
+
+        except subprocess.CalledProcessError as e:
+            error_msg = e.stderr.decode() if e.stderr else str(e)
+            return Response(
+                {"error": f"Failed to read file: {error_msg}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def _write_to_docker(self, file_instance):
         """Write file content to Docker volume using docker exec"""
@@ -386,37 +685,318 @@ def execute_command(request, canvas_id):
             {"error": "Command is required"}, status=status.HTTP_400_BAD_REQUEST
         )
 
-    working_dir = request.data.get("working_directory", canvas.docker_path)
+    working_dir = request.data.get("working_directory") or canvas.docker_path
+
+    # Increase timeout for potentially long-running commands
+    timeout_seconds = 60 if command.startswith(('ros2 run', 'colcon build')) else 30
 
     # Execute command in Docker container
     try:
-        # Execute command inside Docker container with working directory
-        result = subprocess.run(
+        # First, ensure the canvas directory exists in Docker
+        mkdir_result = subprocess.run(
             [
-                "docker", "exec", "-w", working_dir,
+                "docker", "exec",
                 DOCKER_CONTAINER,
-                "bash", "-c", command
+                "bash", "-c", f"mkdir -p {working_dir}"
             ],
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=5,
         )
 
-        return Response(
-            {
-                "output": result.stdout,
-                "error": result.stderr,
-                "exit_code": result.returncode,
-                "command": command,
-                "working_directory": working_dir,
-            }
+        if mkdir_result.returncode != 0:
+            return Response(
+                {
+                    "error": f"Failed to create workspace directory: {mkdir_result.stderr}",
+                    "exit_code": mkdir_result.returncode
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # Execute command inside Docker container with working directory
+        # Source ROS2 setup before executing the command
+        # Also source local workspace setup if it exists
+        full_command = f"source /opt/ros/humble/setup.bash && cd {working_dir} && "
+
+        # Check if install/setup.bash exists and source it
+        full_command += f"if [ -f {working_dir}/install/setup.bash ]; then source {working_dir}/install/setup.bash; fi && "
+
+        # Execute the user's command
+        full_command += command
+
+        result = subprocess.run(
+            [
+                "docker", "exec",
+                DOCKER_CONTAINER,
+                "bash", "-c", full_command
+            ],
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
         )
+
+        # For source commands, return success message if no errors
+        response_data = {
+            "output": result.stdout,
+            "error": result.stderr,
+            "exit_code": result.returncode,
+            "command": command,
+            "working_directory": working_dir,
+        }
+
+        # If it's a source command with no output and no errors, add success message
+        if command.startswith('source') and not result.stdout and not result.stderr and result.returncode == 0:
+            response_data["output"] = "Environment sourced successfully"
+
+        return Response(response_data)
     except subprocess.TimeoutExpired:
+        timeout_msg = f"Command execution timeout ({timeout_seconds}s)"
         return Response(
-            {"error": "Command execution timeout (30s)"},
+            {"error": timeout_msg},
             status=status.HTTP_408_REQUEST_TIMEOUT,
         )
     except Exception as e:
         return Response(
             {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+def read_stream(stream, output_queue, stream_name):
+    """
+    Read from a stream (stdout/stderr) and put lines into a queue
+    Runs in a separate thread
+    """
+    try:
+        for line in iter(stream.readline, ''):
+            if line:
+                output_queue.put((stream_name, line))
+        stream.close()
+    except Exception as e:
+        output_queue.put((stream_name, f"[Stream error: {str(e)}]\n"))
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def start_streaming_command(request, canvas_id):
+    """
+    Start a long-running command that streams output
+
+    Request body:
+    {
+        "command": "ros2 run my_pkg my_node"
+    }
+
+    Returns:
+    {
+        "process_id": "uuid-string",
+        "status": "running"
+    }
+    """
+    canvas = get_object_or_404(Canvas, id=canvas_id, user=request.user)
+
+    command = request.data.get("command")
+    if not command:
+        return Response(
+            {"error": "Command is required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    working_dir = canvas.docker_path
+
+    # Generate unique process ID
+    process_id = str(uuid.uuid4())
+
+    try:
+        # Build full command with ROS2 setup
+        full_command = f"source /opt/ros/humble/setup.bash && cd {working_dir} && "
+        full_command += f"if [ -f {working_dir}/install/setup.bash ]; then source {working_dir}/install/setup.bash; fi && "
+        full_command += command
+
+        # Start process with Popen for streaming
+        process = subprocess.Popen(
+            ["docker", "exec", "-i", DOCKER_CONTAINER, "bash", "-c", full_command],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,  # Line buffered
+            universal_newlines=True
+        )
+
+        # Create output queue for this process
+        output_queue = queue.Queue()
+
+        # Start threads to read stdout and stderr
+        stdout_thread = threading.Thread(
+            target=read_stream,
+            args=(process.stdout, output_queue, 'stdout'),
+            daemon=True
+        )
+        stderr_thread = threading.Thread(
+            target=read_stream,
+            args=(process.stderr, output_queue, 'stderr'),
+            daemon=True
+        )
+
+        stdout_thread.start()
+        stderr_thread.start()
+
+        # Store process info
+        RUNNING_PROCESSES[process_id] = {
+            'process': process,
+            'output_queue': output_queue,
+            'command': command,
+            'start_time': time.time(),
+            'canvas_id': canvas_id,
+            'user_id': request.user.id,
+            'stdout_thread': stdout_thread,
+            'stderr_thread': stderr_thread,
+        }
+
+        return Response({
+            "process_id": process_id,
+            "status": "running",
+            "command": command
+        })
+
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_process_output(request, canvas_id, process_id):
+    """
+    Get new output from a running process
+
+    Returns:
+    {
+        "output": [
+            {"type": "stdout", "data": "line 1"},
+            {"type": "stderr", "data": "line 2"}
+        ],
+        "status": "running" | "completed" | "error",
+        "exit_code": 0 (if completed)
+    }
+    """
+    # Check if process exists and user owns it
+    if process_id not in RUNNING_PROCESSES:
+        return Response(
+            {"error": "Process not found", "status": "not_found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    process_info = RUNNING_PROCESSES[process_id]
+
+    # Verify user owns this process
+    if process_info['user_id'] != request.user.id:
+        return Response(
+            {"error": "Unauthorized"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    process = process_info['process']
+    output_queue = process_info['output_queue']
+
+    # Collect all available output
+    output_lines = []
+    try:
+        while not output_queue.empty():
+            stream_name, line = output_queue.get_nowait()
+            output_lines.append({
+                "type": stream_name,
+                "data": line.rstrip('\n')
+            })
+    except queue.Empty:
+        pass
+
+    # Check if process is still running
+    poll_result = process.poll()
+
+    if poll_result is None:
+        # Still running
+        return Response({
+            "output": output_lines,
+            "status": "running"
+        })
+    else:
+        # Process completed
+        # Get any remaining output
+        try:
+            while not output_queue.empty():
+                stream_name, line = output_queue.get_nowait()
+                output_lines.append({
+                    "type": stream_name,
+                    "data": line.rstrip('\n')
+                })
+        except queue.Empty:
+            pass
+
+        # Clean up
+        if process_id in RUNNING_PROCESSES:
+            del RUNNING_PROCESSES[process_id]
+
+        return Response({
+            "output": output_lines,
+            "status": "completed",
+            "exit_code": poll_result
+        })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def kill_process(request, canvas_id, process_id):
+    """
+    Kill a running process
+
+    Returns:
+    {
+        "status": "killed",
+        "process_id": "uuid"
+    }
+    """
+    if process_id not in RUNNING_PROCESSES:
+        return Response(
+            {"error": "Process not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    process_info = RUNNING_PROCESSES[process_id]
+
+    # Verify user owns this process
+    if process_info['user_id'] != request.user.id:
+        return Response(
+            {"error": "Unauthorized"},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    process = process_info['process']
+
+    try:
+        # Send SIGTERM first
+        process.terminate()
+
+        # Wait up to 2 seconds for graceful shutdown
+        try:
+            process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            # Force kill if still running
+            process.kill()
+            process.wait()
+
+        # Clean up
+        if process_id in RUNNING_PROCESSES:
+            del RUNNING_PROCESSES[process_id]
+
+        return Response({
+            "status": "killed",
+            "process_id": process_id
+        })
+
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

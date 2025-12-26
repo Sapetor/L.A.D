@@ -81,6 +81,62 @@
     text-shadow: 0 0 12px var(--neon);
   }
 
+  // Selection Controls
+  &__controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  &__control-btn {
+    padding: 0.65rem 1.5rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid var(--border);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-family: inherit;
+    backdrop-filter: blur(6px);
+    background: var(--glass);
+    color: var(--text);
+
+    &:hover:not(:disabled) {
+      border-color: var(--neon);
+      box-shadow: 0 0 12px rgba(125, 249, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    &:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    &.active {
+      background: rgba(125, 249, 255, 0.15);
+      color: var(--neon);
+      border-color: var(--neon);
+      box-shadow: 0 0 12px rgba(125, 249, 255, 0.3);
+    }
+
+    &--delete {
+      background: rgba(255, 80, 80, 0.15);
+      color: #ff5050;
+      border-color: #ff5050;
+
+      &:hover:not(:disabled) {
+        box-shadow: 0 4px 16px rgba(255, 80, 80, 0.4);
+        background: rgba(255, 80, 80, 0.25);
+        transform: translateY(-2px);
+      }
+    }
+  }
+
   // Grid
   &__grid {
     display: grid;
@@ -130,6 +186,60 @@
 
   &:active {
     transform: translateY(-2px);
+  }
+
+  // Selected state
+  &--selected {
+    border-color: var(--neon) !important;
+    background: rgba(125, 249, 255, 0.08) !important;
+    box-shadow: 0 0 20px rgba(125, 249, 255, 0.3) !important;
+
+    &::before {
+      opacity: 0.2 !important;
+    }
+  }
+
+  // Checkbox
+  &__checkbox {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    z-index: 10;
+
+    input[type="checkbox"] {
+      width: 1.5rem;
+      height: 1.5rem;
+      cursor: pointer;
+      appearance: none;
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      background: var(--glass);
+      backdrop-filter: blur(6px);
+      transition: all 0.2s ease;
+      position: relative;
+
+      &:hover {
+        border-color: var(--neon);
+        box-shadow: 0 0 8px rgba(125, 249, 255, 0.3);
+      }
+
+      &:checked {
+        background: var(--neon);
+        border-color: var(--neon);
+        box-shadow: 0 0 12px rgba(125, 249, 255, 0.5);
+
+        &::after {
+          content: "✓";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          color: #0a0a14;
+          font-size: 1rem;
+          font-weight: bold;
+        }
+      }
+    }
   }
 
   // Create New Canvas Card
@@ -198,11 +308,37 @@
     text-shadow: 0 0 8px rgba(125, 249, 255, 0.3);
   }
 
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  &__delete {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+    line-height: 1;
+
+    &:hover {
+      opacity: 1;
+      transform: scale(1.15);
+      filter: drop-shadow(0 0 8px rgba(255, 100, 100, 0.6));
+    }
+
+    &:active {
+      transform: scale(1);
+    }
+  }
+
   &__date {
     font-size: 0.75rem;
     color: var(--text);
     opacity: 0.6;
-    margin-left: 0.5rem;
     white-space: nowrap;
   }
 
@@ -401,5 +537,103 @@
         cursor: not-allowed;
       }
     }
+  }
+}
+
+// =============================================================================
+// SweetAlert2 Custom Styling - L.A.D Theme
+// =============================================================================
+
+.lad-swal-popup {
+  border: 2px solid var(--border) !important;
+  border-radius: 18px !important;
+  backdrop-filter: blur(12px) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+              0 0 40px rgba(125, 249, 255, 0.15) !important;
+  padding: 2rem !important;
+}
+
+.lad-swal-title {
+  color: var(--text) !important;
+  font-size: 1.8rem !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  text-shadow: 0 0 12px var(--neon) !important;
+  margin-bottom: 1rem !important;
+}
+
+.lad-swal-html {
+  color: var(--text) !important;
+  font-family: inherit !important;
+}
+
+.lad-swal-confirm,
+.lad-swal-cancel {
+  padding: 0.75rem 2rem !important;
+  border-radius: 12px !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  border: 2px solid var(--border) !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  font-family: inherit !important;
+  backdrop-filter: blur(6px) !important;
+  margin: 0 0.5rem !important;
+}
+
+.lad-swal-cancel {
+  background: var(--glass) !important;
+  color: var(--text) !important;
+
+  &:hover {
+    border-color: var(--neon) !important;
+    box-shadow: 0 0 12px rgba(125, 249, 255, 0.2) !important;
+    transform: translateY(-2px) !important;
+  }
+}
+
+.lad-swal-confirm {
+  background: rgba(255, 80, 80, 0.15) !important;
+  color: #ff5050 !important;
+  border-color: #ff5050 !important;
+
+  &:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 16px rgba(255, 80, 80, 0.4) !important;
+    background: rgba(255, 80, 80, 0.25) !important;
+  }
+
+  &:active {
+    transform: translateY(0) !important;
+  }
+}
+
+// Warning icon color override
+.swal2-icon.swal2-warning {
+  border-color: #ffcc00 !important;
+  color: #ffcc00 !important;
+}
+
+.swal2-icon.swal2-success {
+  border-color: var(--neon) !important;
+
+  .swal2-success-line-tip,
+  .swal2-success-line-long {
+    background-color: var(--neon) !important;
+  }
+
+  .swal2-success-ring {
+    border-color: rgba(125, 249, 255, 0.3) !important;
+  }
+}
+
+.swal2-icon.swal2-error {
+  border-color: #ff5050 !important;
+
+  .swal2-x-mark-line-left,
+  .swal2-x-mark-line-right {
+    background-color: #ff5050 !important;
   }
 }

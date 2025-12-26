@@ -642,9 +642,29 @@
   "pk": 7,
   "fields": {
     "level": "ros2-nodes-intro",
-    "code": "ROS2_NODE_BASICS",
-    "description": "Create and run basic ROS 2 nodes",
-    "points": 20
+    "code": "ros2-nodes-what",
+    "description": "Understand what ROS 2 nodes are",
+    "points": 10
+  }
+},
+{
+  "model": "learning.objective",
+  "pk": 26,
+  "fields": {
+    "level": "ros2-nodes-intro",
+    "code": "ros2-nodes-examples",
+    "description": "Learn real-world node examples",
+    "points": 10
+  }
+},
+{
+  "model": "learning.objective",
+  "pk": 27,
+  "fields": {
+    "level": "ros2-nodes-intro",
+    "code": "ros2-package-creating",
+    "description": "Create your first ROS 2 package",
+    "points": 15
   }
 },
 {
@@ -652,9 +672,19 @@
   "pk": 8,
   "fields": {
     "level": "ros2-topics",
-    "code": "ROS2_TOPIC_PUB",
-    "description": "Publish to ROS 2 topics successfully",
-    "points": 20
+    "code": "ros2-topics-what",
+    "description": "Understand what topics are and publish-subscribe pattern",
+    "points": 10
+  }
+},
+{
+  "model": "learning.objective",
+  "pk": 28,
+  "fields": {
+    "level": "ros2-topics",
+    "code": "ros2-topics-publishing",
+    "description": "Create publishers and publish messages",
+    "points": 15
   }
 },
 {
@@ -662,9 +692,19 @@
   "pk": 9,
   "fields": {
     "level": "ros2-subscriptions",
-    "code": "ROS2_TOPIC_SUB",
-    "description": "Subscribe to topics and process messages",
-    "points": 20
+    "code": "ros2-subs-creating",
+    "description": "Create subscribers and handle callbacks",
+    "points": 15
+  }
+},
+{
+  "model": "learning.objective",
+  "pk": 29,
+  "fields": {
+    "level": "ros2-subscriptions",
+    "code": "ros2-subs-message-flow",
+    "description": "Understand message flow patterns",
+    "points": 15
   }
 },
 {
@@ -672,9 +712,19 @@
   "pk": 10,
   "fields": {
     "level": "ros2-mini-games",
-    "code": "ROS2_MINIGAME_WIN",
-    "description": "Complete ROS 2 mini-game",
-    "points": 40
+    "code": "ros2-minigame-commands",
+    "description": "Master ROS 2 topic CLI commands",
+    "points": 15
+  }
+},
+{
+  "model": "learning.objective",
+  "pk": 30,
+  "fields": {
+    "level": "ros2-mini-games",
+    "code": "ros2-minigame-connect-flow",
+    "description": "Complete the communication flow game",
+    "points": 20
   }
 },
 {

@@ -1,6 +1,7 @@
 // components/ide/FileExplorer.jsx
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import PropTypes from "prop-types";
+import Swal from "sweetalert2";
 import "./FileExplorer.scss";
 
 /**
@@ -28,6 +29,22 @@ export function FileExplorer({
   const [contextMenu, setContextMenu] = useState(null);
   const [renaming, setRenaming] = useState(null);
   const [newName, setNewName] = useState("");
+
+  // Get all directories from file tree for location dropdown
+  const getAllDirectories = useCallback((items, parentPath = "", result = []) => {
+    items.forEach(item => {
+      if (item.type === "directory" || item.type === "dir") {
+        const fullPath = parentPath ? `${parentPath}/${item.name}` : item.name;
+        result.push({ name: fullPath, path: item.path });
+        if (item.children && item.children.length > 0) {
+          getAllDirectories(item.children, fullPath, result);
+        }
+      }
+    });
+    return result;
+  }, []);
+
+  const directories = useMemo(() => getAllDirectories(files), [files, getAllDirectories]);
 
   // Toggle folder expand/collapse
   const toggleExpand = useCallback((path) => {
@@ -73,36 +90,137 @@ export function FileExplorer({
     setContextMenu(null);
   }, []);
 
+  // Show SweetAlert2 modal for creating files/folders
+  const showCreateModal = useCallback(async (defaultLocation = "") => {
+    const directoryOptions = directories.length > 0
+      ? directories.map(dir => `<option value="${dir.path}">${dir.name}</option>`).join('')
+      : '<option value="/">/</option>';
+
+    const result = await Swal.fire({
+      title: 'Create New File or Folder',
+      html: `
+        <div style="text-align: left; padding: 0 1rem;">
+          <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Type</label>
+            <select id="swal-type" class="swal2-input" style="width: 100%; margin: 0;">
+              <option value="file">📄 File</option>
+              <option value="directory">📁 Folder</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Location</label>
+            <select id="swal-location" class="swal2-input" style="width: 100%; margin: 0;">
+              <option value="/">/ (root)</option>
+              ${directoryOptions}
+            </select>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Name</label>
+            <input id="swal-name" class="swal2-input" placeholder="my_script.py" style="width: 100%; margin: 0;">
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Create',
+      cancelButtonText: 'Cancel',
+      background: 'rgba(10, 10, 20, 0.95)',
+      color: '#e0e0e0',
+      customClass: {
+        popup: 'lad-swal-popup',
+        title: 'lad-swal-title',
+        confirmButton: 'lad-swal-confirm',
+        cancelButton: 'lad-swal-cancel'
+      },
+      buttonsStyling: false,
+      didOpen: () => {
+        const locationSelect = document.getElementById('swal-location');
+        if (defaultLocation && locationSelect) {
+          locationSelect.value = defaultLocation;
+        }
+        document.getElementById('swal-name')?.focus();
+      },
+      preConfirm: () => {
+        const type = document.getElementById('swal-type').value;
+        const location = document.getElementById('swal-location').value;
+        const name = document.getElementById('swal-name').value.trim();
+
+        if (!name) {
+          Swal.showValidationMessage('Please enter a name');
+          return false;
+        }
+
+        // Validate file/folder name
+        if (!/^[a-zA-Z0-9_.-]+$/.test(name)) {
+          Swal.showValidationMessage('Name can only contain letters, numbers, underscores, dots, and hyphens');
+          return false;
+        }
+
+        return { type, location, name };
+      }
+    });
+
+    if (result.isConfirmed && result.value) {
+      const { type, location, name } = result.value;
+      const fullPath = location === '/' ? name : `${location}/${name}`;
+      onFileCreate?.(fullPath, type);
+    }
+  }, [directories, onFileCreate]);
+
   // Handle context menu actions
   const handleNewFile = useCallback(() => {
     const parentPath = contextMenu.item.type === "directory"
       ? contextMenu.item.path
       : contextMenu.item.path.split("/").slice(0, -1).join("/");
 
-    const fileName = window.prompt("Enter file name:");
-    if (fileName) {
-      onFileCreate?.(`${parentPath}/${fileName}`, "file");
-    }
     closeContextMenu();
-  }, [contextMenu, onFileCreate, closeContextMenu]);
+    showCreateModal(parentPath);
+  }, [contextMenu, closeContextMenu, showCreateModal]);
 
   const handleNewFolder = useCallback(() => {
     const parentPath = contextMenu.item.type === "directory"
       ? contextMenu.item.path
       : contextMenu.item.path.split("/").slice(0, -1).join("/");
 
-    const folderName = window.prompt("Enter folder name:");
-    if (folderName) {
-      onFileCreate?.(`${parentPath}/${folderName}`, "directory");
-    }
     closeContextMenu();
-  }, [contextMenu, onFileCreate, closeContextMenu]);
+    showCreateModal(parentPath);
+  }, [contextMenu, closeContextMenu, showCreateModal]);
 
-  const handleDelete = useCallback(() => {
-    if (window.confirm(`Delete ${contextMenu.item.path}?`)) {
-      onFileDelete?.(contextMenu.item.path);
-    }
+  const handleDelete = useCallback(async () => {
+    const itemPath = contextMenu.item.path;
+    const itemType = contextMenu.item.type === "directory" ? "folder" : "file";
     closeContextMenu();
+
+    const result = await Swal.fire({
+      title: `Delete ${itemType}?`,
+      html: `
+        <div style="text-align: left; padding: 0 1rem;">
+          <p style="margin-bottom: 1rem; color: #e0e0e0;">
+            Are you sure you want to delete this ${itemType}?
+          </p>
+          <p style="margin-bottom: 0; font-family: monospace; color: #ff6b6b;">
+            ${itemPath}
+          </p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Delete',
+      cancelButtonText: 'Cancel',
+      background: 'rgba(10, 10, 20, 0.95)',
+      color: '#e0e0e0',
+      iconColor: '#ff6b6b',
+      customClass: {
+        popup: 'lad-swal-popup',
+        title: 'lad-swal-title',
+        confirmButton: 'lad-swal-confirm lad-swal-confirm--danger',
+        cancelButton: 'lad-swal-cancel'
+      },
+      buttonsStyling: false,
+    });
+
+    if (result.isConfirmed) {
+      onFileDelete?.(itemPath);
+    }
   }, [contextMenu, onFileDelete, closeContextMenu]);
 
   const handleRename = useCallback(() => {
@@ -236,8 +354,8 @@ export function FileExplorer({
         <span className="file-explorer__title">Files</span>
         <button
           className="file-explorer__action"
-          onClick={() => onFileCreate?.("newfile.py", "file")}
-          title="New File"
+          onClick={() => showCreateModal("/")}
+          title="New File or Folder"
         >
           +
         </button>

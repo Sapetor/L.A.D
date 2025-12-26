@@ -14,6 +14,7 @@ import "@xyflow/react/dist/style.css";
 
 import { nodeTypes, defaultDataFor } from "../blocks";
 import { syncUrdfDerived, syncJointStates } from "../blocks/urdf-helpers";
+import { syncRos2Commands } from "../blocks/ros2-helpers";
 import "./BlockCanvas.scss";
 
 /**
@@ -28,6 +29,9 @@ import "./BlockCanvas.scss";
  * @param {Function} props.codeGenerator - Function to generate code from graph
  * @param {boolean} props.readOnly - Disable editing
  * @param {string} props.canvasId - Canvas/workspace ID for file operations
+ * @param {Function} props.onExecute - Callback for executing commands from ConvertToCodeNode
+ * @param {string} props.currentFile - Currently open file path
+ * @param {Function} props.onFileSaved - Callback when a file is saved from Convert2Code node
  */
 export function BlockCanvas({
   initialNodes = [],
@@ -39,10 +43,50 @@ export function BlockCanvas({
   readOnly = false,
   className = "",
   canvasId,
+  onExecute,
+  currentFile,
+  onFileSaved,
 }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { screenToFlowPosition } = useReactFlow();
+
+  // Store nodes and edges in a ref to avoid re-creating getGraphSnapshot constantly
+  const graphRef = React.useRef({ nodes: [], edges: [] });
+  React.useEffect(() => {
+    graphRef.current = { nodes, edges };
+  }, [nodes, edges]);
+
+  // Function to get current graph snapshot (for saving block metadata)
+  // Use useRef to keep the same function reference
+  const getGraphSnapshot = React.useCallback(() => {
+    const { nodes: currentNodes, edges: currentEdges } = graphRef.current;
+    return {
+      nodes: currentNodes.map(n => ({
+        id: n.id,
+        type: n.type,
+        position: n.position,
+        data: {
+          // Only save the data properties, not the callbacks
+          ...Object.keys(n.data || {}).reduce((acc, key) => {
+            if (typeof n.data[key] !== 'function') {
+              acc[key] = n.data[key];
+            }
+            return acc;
+          }, {}),
+        },
+        style: n.style,
+      })),
+      edges: currentEdges.map(e => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle,
+        targetHandle: e.targetHandle,
+        type: e.type,
+      })),
+    };
+  }, []); // Empty deps - function never changes
 
   // Notify parent of graph changes
   useEffect(() => {
@@ -67,6 +111,11 @@ export function BlockCanvas({
   // Sync joint states from control nodes to viewer nodes
   useEffect(() => {
     syncJointStates(nodes, edges, setNodes);
+  }, [nodes, edges, setNodes]);
+
+  // Sync ROS2 commands to toCode nodes when graph changes
+  useEffect(() => {
+    syncRos2Commands(nodes, edges, setNodes);
   }, [nodes, edges, setNodes]);
 
   // Connection handler
@@ -140,13 +189,15 @@ export function BlockCanvas({
           id: `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           type,
           position,
-          data: { ...defaultDataFor(type), onChange: onNodeDataChange, canvasId },
+          data: { ...defaultDataFor(type), onChange: onNodeDataChange, canvasId, onExecute, currentFile, onFileSaved, getGraphSnapshot },
           style: nodeStyle,
         },
       ]);
     },
-    [readOnly, screenToFlowPosition, setNodes, onNodeDataChange, canvasId]
+    [readOnly, screenToFlowPosition, setNodes, onNodeDataChange, canvasId, onExecute, currentFile, onFileSaved, getGraphSnapshot]
   );
+
+  // Also memoize the callback dependencies to prevent re-renders
 
   const onDragOver = useCallback(
     (evt) => {
@@ -158,8 +209,13 @@ export function BlockCanvas({
   );
 
   // Update nodes when initialNodes change (for loading saved graphs)
+  // Use a ref to track if we've already initialized to prevent loops
+  const initializedRef = React.useRef(false);
+
   useEffect(() => {
-    if (initialNodes.length > 0) {
+    // Only update if initialNodes actually changed (not just a re-render)
+    if (initialNodes.length > 0 && !initializedRef.current) {
+      initializedRef.current = true;
       setNodes(
         initialNodes.map((n) => {
           // Ensure proper styling for nodes that need fixed dimensions
@@ -176,13 +232,18 @@ export function BlockCanvas({
 
           return {
             ...n,
-            data: { ...n.data, onChange: onNodeDataChange, canvasId },
+            data: { ...n.data, onChange: onNodeDataChange, canvasId, onExecute, currentFile, onFileSaved, getGraphSnapshot },
             style: nodeStyle,
           };
         })
       );
     }
-  }, []); // Only on mount
+  }, [initialNodes.length]); // Only depend on length, not the whole array
+
+  // Reset initialized flag when currentFile changes
+  useEffect(() => {
+    initializedRef.current = false;
+  }, [currentFile]);
 
   useEffect(() => {
     if (initialEdges.length > 0) {
@@ -228,6 +289,10 @@ BlockCanvas.propTypes = {
   codeGenerator: PropTypes.func,
   readOnly: PropTypes.bool,
   className: PropTypes.string,
+  canvasId: PropTypes.string,
+  onExecute: PropTypes.func,
+  currentFile: PropTypes.string,
+  onFileSaved: PropTypes.func,
 };
 
 export default BlockCanvas;
