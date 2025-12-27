@@ -7,6 +7,7 @@ import { FileExplorer } from "./FileExplorer";
 import { TabBar } from "./TabBar";
 import { Terminal } from "./Terminal";
 import { CodeEditor } from "./CodeEditor";
+import { LidarVisualizer } from "./LidarVisualizer";
 import IDETutorial from "./IDETutorial";
 import { CategorizedPalette } from "../blocks";
 import { paletteCategorized } from "../blocks";
@@ -33,6 +34,7 @@ function EmbeddedIDEInner({ tutorial, onTutorialComplete, onTutorialSkip }) {
   const [activeTab, setActiveTab] = useState(null);
   const [showTerminal, setShowTerminal] = useState(false);
   const [fileExplorerCollapsed, setFileExplorerCollapsed] = useState(false);
+  const [showVisualizer, setShowVisualizer] = useState(false);
 
   // Ensure src directory exists
   useEffect(() => {
@@ -105,7 +107,7 @@ function EmbeddedIDEInner({ tutorial, onTutorialComplete, onTutorialSkip }) {
           return [...prev, { path, name: fileName, type: "file", unsaved: false }];
         });
         setActiveTab(path);
-        setShowTerminal(false);
+        // Don't close terminal, just switch active tab
         return;
       }
 
@@ -172,7 +174,7 @@ function EmbeddedIDEInner({ tutorial, onTutorialComplete, onTutorialSkip }) {
         return [...prev, { path, name: fileName, type: "file", unsaved: false }];
       });
       setActiveTab(path);
-      setShowTerminal(false);
+      // Don't close terminal, just switch active tab
     } catch (error) {
       console.error("[Embedded IDE] Failed to load file:", error);
       alert(`Failed to load file: ${error.message}`);
@@ -363,7 +365,7 @@ function EmbeddedIDEInner({ tutorial, onTutorialComplete, onTutorialSkip }) {
       setShowTerminal(true);
       setActiveTab("terminal");
     } else {
-      setShowTerminal(false);
+      // Don't close terminal, just switch active tab
       setActiveTab(path);
       setCurrentFile(path);
     }
@@ -406,6 +408,10 @@ function EmbeddedIDEInner({ tutorial, onTutorialComplete, onTutorialSkip }) {
       });
     }
   }, [showTerminal, openTabs]);
+
+  const handleToggleVisualizer = useCallback(() => {
+    setShowVisualizer((prev) => !prev);
+  }, []);
 
   const handleCommandExecute = useCallback(async (command, callback) => {
     if (!canvasId) {
@@ -596,6 +602,12 @@ function EmbeddedIDEInner({ tutorial, onTutorialComplete, onTutorialSkip }) {
             📟 Terminal
           </button>
           <button
+            className={`btn btn--small ${showVisualizer ? 'btn--success' : ''}`}
+            onClick={handleToggleVisualizer}
+          >
+            📡 LIDAR
+          </button>
+          <button
             className="btn btn--small"
             onClick={async () => {
               try {
@@ -659,14 +671,18 @@ function EmbeddedIDEInner({ tutorial, onTutorialComplete, onTutorialSkip }) {
 
           {/* Content Area */}
           <div className="embedded-ide__content">
-            {showTerminal ? (
+            {/* Terminal - Keep mounted but hide when not active */}
+            <div style={{ display: showTerminal && activeTab === "terminal" ? "block" : "none", height: "100%" }}>
               <Terminal
                 onCommandExecute={handleCommandExecute}
                 workingDirectory="~"
                 username="developer"
                 canvasId={canvasId}
               />
-            ) : currentFile ? (
+            </div>
+
+            {/* File Editor - Show when not on terminal tab */}
+            {!showTerminal && currentFile ? (
               <>
                 {/* Editor Mode Selector */}
                 <div className="embedded-ide__editor-mode">
@@ -753,6 +769,13 @@ function EmbeddedIDEInner({ tutorial, onTutorialComplete, onTutorialSkip }) {
             )}
           </div>
         </main>
+
+        {/* Right Sidebar - LIDAR Visualizer */}
+        {showVisualizer && (
+          <aside className="embedded-ide__visualizer">
+            <LidarVisualizer isVisible={showVisualizer} />
+          </aside>
+        )}
       </div>
 
       {/* Tutorial Overlay */}
