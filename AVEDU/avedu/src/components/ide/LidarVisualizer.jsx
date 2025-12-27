@@ -10,13 +10,15 @@ import "./LidarVisualizer.scss";
 export function LidarVisualizer({ canvasId, isVisible }) {
   const canvasRef = useRef(null);
   const wsRef = useRef(null);
+  const scanHistoryRef = useRef([]);
   const [isConnected, setIsConnected] = useState(false);
   const [scanData, setScanData] = useState(null);
   const [topicName, setTopicName] = useState("/qcar/lidar/scan");
   const [showGrid, setShowGrid] = useState(true);
   const [maxRange, setMaxRange] = useState(10.0);
+  const [scansToKeep, setScansToKeep] = useState(5);
   const [connectionError, setConnectionError] = useState(null);
-  const [stats, setStats] = useState({ messagesReceived: 0, lastUpdate: null });
+  const [stats, setStats] = useState({ messagesReceived: 0, lastUpdate: null, totalPoints: 0 });
 
   // Connect to rosbridge WebSocket
   useEffect(() => {
@@ -53,7 +55,7 @@ export function LidarVisualizer({ canvasId, isVisible }) {
           if (message.op === "publish" && message.topic === topicName) {
             const msg = message.msg;
 
-            setScanData({
+            const newScan = {
               ranges: msg.ranges,
               angle_min: msg.angle_min,
               angle_max: msg.angle_max,
@@ -61,11 +63,28 @@ export function LidarVisualizer({ canvasId, isVisible }) {
               range_min: msg.range_min,
               range_max: msg.range_max,
               timestamp: Date.now()
-            });
+            };
+
+            // Add to history and keep only last N scans
+            scanHistoryRef.current.push(newScan);
+            if (scanHistoryRef.current.length > scansToKeep) {
+              scanHistoryRef.current.shift();
+            }
+
+            setScanData(newScan);
+
+            // Count total valid points across all scans in history
+            const totalPoints = scanHistoryRef.current.reduce((sum, scan) => {
+              const validPoints = scan.ranges.filter(r =>
+                !isNaN(r) && r >= scan.range_min && r <= scan.range_max
+              ).length;
+              return sum + validPoints;
+            }, 0);
 
             setStats(prev => ({
               messagesReceived: prev.messagesReceived + 1,
-              lastUpdate: new Date().toLocaleTimeString()
+              lastUpdate: new Date().toLocaleTimeString(),
+              totalPoints
             }));
           }
         } catch (error) {
@@ -100,7 +119,14 @@ export function LidarVisualizer({ canvasId, isVisible }) {
       setConnectionError("Failed to connect. Make sure rosbridge is running on ws://localhost:9090");
       setIsConnected(false);
     }
-  }, [isConnected, topicName]);
+  }, [isConnected, topicName, scansToKeep]);
+
+  // Clear history when scansToKeep changes
+  useEffect(() => {
+    if (scanHistoryRef.current.length > scansToKeep) {
+      scanHistoryRef.current = scanHistoryRef.current.slice(-scansToKeep);
+    }
+  }, [scansToKeep]);
 
   // Draw LIDAR visualization
   useEffect(() => {
@@ -157,31 +183,41 @@ export function LidarVisualizer({ canvasId, isVisible }) {
       }
     }
 
-    // Draw LIDAR points
-    const { ranges, angle_min, angle_increment } = scanData;
+    // Draw LIDAR points from all scans in history
+    const scans = scanHistoryRef.current;
+    const numScans = scans.length;
 
-    // Use gradient for points based on distance
-    for (let i = 0; i < ranges.length; i++) {
-      const range = ranges[i];
+    // Draw older scans first (with more transparency) and newer scans on top
+    for (let scanIndex = 0; scanIndex < numScans; scanIndex++) {
+      const scan = scans[scanIndex];
+      const { ranges, angle_min, angle_increment } = scan;
 
-      // Skip invalid readings
-      if (isNaN(range) || range < scanData.range_min || range > scanData.range_max) {
-        continue;
+      // Calculate opacity based on age (older = more transparent)
+      const age = numScans - scanIndex;
+      const opacity = 0.3 + (scanIndex / numScans) * 0.7; // Range from 0.3 to 1.0
+
+      for (let i = 0; i < ranges.length; i++) {
+        const range = ranges[i];
+
+        // Skip invalid readings
+        if (isNaN(range) || range < scan.range_min || range > scan.range_max) {
+          continue;
+        }
+
+        const angle = angle_min + i * angle_increment;
+        const x = centerX + Math.cos(angle) * range * scale;
+        const y = centerY + Math.sin(angle) * range * scale;
+
+        // Color based on distance (closer = red, farther = cyan)
+        const normalizedDist = range / maxRange;
+        const red = Math.floor((1 - normalizedDist) * 255);
+        const cyan = Math.floor(normalizedDist * 255);
+
+        ctx.fillStyle = `rgba(${red}, ${cyan}, 255, ${opacity})`;
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, 2 * Math.PI);
+        ctx.fill();
       }
-
-      const angle = angle_min + i * angle_increment;
-      const x = centerX + Math.cos(angle) * range * scale;
-      const y = centerY + Math.sin(angle) * range * scale;
-
-      // Color based on distance (closer = red, farther = cyan)
-      const normalizedDist = range / maxRange;
-      const red = Math.floor((1 - normalizedDist) * 255);
-      const cyan = Math.floor(normalizedDist * 255);
-
-      ctx.fillStyle = `rgb(${red}, ${cyan}, 255)`;
-      ctx.beginPath();
-      ctx.arc(x, y, 2.5, 0, 2 * Math.PI);
-      ctx.fill();
     }
 
     // Draw robot center
@@ -206,15 +242,17 @@ export function LidarVisualizer({ canvasId, isVisible }) {
     ctx.lineTo(centerX + 5, centerY - 14);
     ctx.stroke();
 
-  }, [scanData, showGrid, maxRange, isVisible]);
+  }, [scanData, showGrid, maxRange, isVisible, scansToKeep]);
 
   const handleToggleConnection = () => {
     if (isConnected) {
       setIsConnected(false);
       setScanData(null);
-      setStats({ messagesReceived: 0, lastUpdate: null });
+      scanHistoryRef.current = [];
+      setStats({ messagesReceived: 0, lastUpdate: null, totalPoints: 0 });
     } else {
       setConnectionError(null);
+      scanHistoryRef.current = [];
       setIsConnected(true);
     }
   };
@@ -232,6 +270,17 @@ export function LidarVisualizer({ canvasId, isVisible }) {
             title={isConnected ? "Disconnect from topic" : "Connect to topic"}
           >
             {isConnected ? "● Connected" : "○ Disconnected"}
+          </button>
+          <button
+            className="btn btn--small"
+            onClick={() => {
+              scanHistoryRef.current = [];
+              setStats(prev => ({ ...prev, totalPoints: 0 }));
+            }}
+            disabled={!isConnected || scanHistoryRef.current.length === 0}
+            title="Clear scan history buffer"
+          >
+            Clear
           </button>
         </div>
       </div>
@@ -259,6 +308,22 @@ export function LidarVisualizer({ canvasId, isVisible }) {
             step="0.5"
           />
           <span className="lidar-visualizer__unit">m</span>
+        </div>
+
+        <div className="lidar-visualizer__field lidar-visualizer__field--inline">
+          <label>Scan History:</label>
+          <input
+            type="number"
+            value={scansToKeep}
+            onChange={(e) => {
+              const newValue = parseInt(e.target.value) || 5;
+              setScansToKeep(Math.max(1, Math.min(10, newValue)));
+            }}
+            min="1"
+            max="10"
+            step="1"
+          />
+          <span className="lidar-visualizer__unit">scans</span>
         </div>
 
         <div className="lidar-visualizer__field lidar-visualizer__field--checkbox">
@@ -294,8 +359,12 @@ export function LidarVisualizer({ canvasId, isVisible }) {
       {scanData && (
         <div className="lidar-visualizer__stats">
           <div className="lidar-visualizer__stat">
-            <span className="lidar-visualizer__stat-label">Points:</span>
-            <span className="lidar-visualizer__stat-value">{scanData.ranges.length}</span>
+            <span className="lidar-visualizer__stat-label">Scans Buffered:</span>
+            <span className="lidar-visualizer__stat-value">{scanHistoryRef.current.length}</span>
+          </div>
+          <div className="lidar-visualizer__stat">
+            <span className="lidar-visualizer__stat-label">Total Points:</span>
+            <span className="lidar-visualizer__stat-value">{stats.totalPoints}</span>
           </div>
           <div className="lidar-visualizer__stat">
             <span className="lidar-visualizer__stat-label">Range:</span>
@@ -321,6 +390,10 @@ export function LidarVisualizer({ canvasId, isVisible }) {
           <p>Click "Connect" to start receiving LIDAR data</p>
           <p className="lidar-visualizer__note">
             Make sure rosbridge_server is running and your LIDAR node is publishing to <code>{topicName}</code>
+          </p>
+          <p className="lidar-visualizer__note">
+            Scan History accumulates multiple scans for a more complete visualization.
+            Older scans appear more transparent.
           </p>
         </div>
       )}
