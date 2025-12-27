@@ -42,6 +42,10 @@ RUN git clone https://github.com/Wisc-HCI/tf2_web_republisher_py.git
 # 1.5) Clonar ROS-TCP-Endpoint para Unity (ROS 2 branch)
 RUN git clone -b main-ros2 https://github.com/Unity-Technologies/ROS-TCP-Endpoint.git ros_tcp_endpoint
 
+# 1.6) Copiar Unity Robotics Demo packages para pruebas de conexión
+COPY Unity-Robotics-Hub-main/tutorials/ros_unity_integration/ros2_packages/unity_robotics_demo_msgs /ros2_ws/src/unity_robotics_demo_msgs
+COPY Unity-Robotics-Hub-main/tutorials/ros_unity_integration/ros2_packages/unity_robotics_demo /ros2_ws/src/unity_robotics_demo
+
 # 2) Copiar tus paquetes (qcar_bringup, qcar_description) al mismo /ros2_ws/src
 #    OJO: copia el CONTENIDO de qcar/rosws/src/ dentro de /ros2_ws/src/
 COPY qcar/rosws/src/ /ros2_ws/src/

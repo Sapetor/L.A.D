@@ -596,16 +596,16 @@ function EmbeddedIDEInner({ tutorial, onTutorialComplete, onTutorialSkip }) {
               }
             }}
           >
-            🎨 New Canvas
+            New Canvas
           </button>
           <button className="btn btn--small" onClick={handleToggleTerminal}>
-            📟 Terminal
+            Terminal
           </button>
           <button
             className={`btn btn--small ${showVisualizer ? 'btn--success' : ''}`}
             onClick={handleToggleVisualizer}
           >
-            📡 LIDAR
+            LIDAR
           </button>
           <button
             className="btn btn--small"
@@ -620,10 +620,10 @@ function EmbeddedIDEInner({ tutorial, onTutorialComplete, onTutorialSkip }) {
               }
             }}
           >
-            🔄 Refresh
+            Refresh
           </button>
           <button className="btn btn--small btn--primary" onClick={handleSave}>
-            💾 Save
+            Save
           </button>
         </div>
       </header>
@@ -690,13 +690,13 @@ function EmbeddedIDEInner({ tutorial, onTutorialComplete, onTutorialSkip }) {
                     className={`embedded-ide__editor-mode-btn ${editorMode === "visual" ? "active" : ""}`}
                     onClick={() => setEditorMode("visual")}
                   >
-                    🧩 Visual
+                    Visual
                   </button>
                   <button
                     className={`embedded-ide__editor-mode-btn ${editorMode === "text" ? "active" : ""}`}
                     onClick={() => setEditorMode("text")}
                   >
-                    📝 Text
+                    Text
                   </button>
                   <span className="embedded-ide__file-name">
                     {currentFile.split("/").pop()}
