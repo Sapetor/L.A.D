@@ -30,9 +30,9 @@ export default function CategorizedPalette({ categories, defaultCategory }) {
       </div>
 
       <div className="rfp-palette__inner">
-        {activeNodes.map((node) => (
+        {activeNodes.map((node, index) => (
           <div
-            key={node.type}
+            key={node.id || node.type || `node-${index}`}
             className="rf-chip"
             draggable
             title={`Drag ${node.label} to canvas`}

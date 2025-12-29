@@ -12,6 +12,24 @@ import RosBasic from "../levels/RosBasic";
 import MeshDebugPage from "../levels/rviz";
 import VehicleDynamics from "../levels/VehicleDynamics";
 import GazeboSim from "../levels/GazeboSim";
+import IntroUIBasics from "../levels/IntroUIBasics";
+import IntroGettingStarted from "../levels/IntroGettingStarted";
+// Vehicle Dynamics Levels
+import VdPhysicsIntro from "../levels/VdPhysicsIntro";
+import VdCenterOfRotation from "../levels/VdCenterOfRotation";
+import VdAckermann from "../levels/VdAckermann";
+import VdBicycleModel from "../levels/VdBicycleModel";
+import VdSimulations from "../levels/VdSimulations";
+// ROS2 Concepts Levels
+import Ros2NodesIntro from "../levels/Ros2NodesIntro";
+import Ros2Topics from "../levels/Ros2Topics";
+import Ros2Subscriptions from "../levels/Ros2Subscriptions";
+import Ros2MiniGames from "../levels/Ros2MiniGames";
+// Sensing Unit Levels
+import SensingIntegration from "../levels/SensingIntegration";
+import SensingSubscribe from "../levels/SensingSubscribe";
+import SensingVisualization from "../levels/SensingVisualization";
+import SensingTasks from "../levels/SensingTasks";
 
 const DEBUG = true;
 
@@ -21,6 +39,24 @@ const REGISTRY = Object.freeze({
   "rviz": MeshDebugPage,
   "vehicle-dynamics": VehicleDynamics,
   "gazebo-sim": GazeboSim,
+  "intro-ui-basics": IntroUIBasics,
+  "intro-getting-started": IntroGettingStarted,
+  // Vehicle Dynamics Unit Levels
+  "vd-physics-intro": VdPhysicsIntro,
+  "vd-center-of-rotation": VdCenterOfRotation,
+  "vd-ackermann": VdAckermann,
+  "vd-bicycle-model": VdBicycleModel,
+  "vd-simulations": VdSimulations,
+  // ROS2 Concepts Unit Levels
+  "ros2-nodes-intro": Ros2NodesIntro,
+  "ros2-topics": Ros2Topics,
+  "ros2-subscriptions": Ros2Subscriptions,
+  "ros2-mini-games": Ros2MiniGames,
+  // Sensing Unit Levels
+  "sensing-integration": SensingIntegration,
+  "sensing-subscribe": SensingSubscribe,
+  "sensing-visualization": SensingVisualization,
+  "sensing-tasks": SensingTasks,
 });
 
 export default function LearnLevel() {

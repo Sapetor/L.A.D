@@ -23,13 +23,12 @@ services:
       - CORS_ALLOW_ORIGIN=http://localhost:3000,http://127.0.0.1:3000,http://${EXPOSED_IP:-0.0.0.0}:3000
       - ENABLE_JSP=1
       - ENABLE_ROSAPI=1
-      - ENABLE_WVS=1
-      - ENABLE_TURTLESIM=1
-      - ENABLE_GAZEBO=1
-      - ENABLE_DUMMY_CAMERAS=0       # Disable - use real Gazebo cameras with X11
+      - ENABLE_WVS=0                 # Disable web video server (Unity handles visualization)
+      - ENABLE_TURTLESIM=0           # Disable turtlesim demo
+      - ENABLE_GAZEBO=0              # Disable Gazebo - using Unity instead
+      - ENABLE_DUMMY_CAMERAS=0       # Disable dummy cameras
       - ENABLE_UNITY_TCP=1           # Enable ROS-TCP-Endpoint for Unity
       - UNITY_TCP_PORT=10000         # Port for Unity connection
-      - GAZEBO_WORLD=/ros2_ws/src/qcar_bringup/worlds/simple_track.world
       - IP_CONFIG_PATH=/config/ip_config.json
     volumes:
       - ../config/ip_config.json:/config/ip_config.json:ro

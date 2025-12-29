@@ -230,3 +230,106 @@
     }
   }
 }
+
+// SweetAlert2 custom styles for FileExplorer modals
+.lad-swal-popup {
+  border: 1px solid rgba(var(--neon-rgb), 0.3);
+  border-radius: 12px;
+  box-shadow:
+    0 10px 40px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(var(--neon-rgb), 0.15);
+
+  label {
+    font-weight: 600;
+    color: var(--neon);
+    margin-bottom: 0.5rem;
+  }
+
+  .swal2-input,
+  select.swal2-input {
+    background: var(--bg-surface);
+    border: 1px solid rgba(var(--neon-rgb), 0.3);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: inherit;
+    padding: 0.6rem 0.8rem;
+    transition: all 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: var(--neon);
+      box-shadow: 0 0 0 3px rgba(var(--neon-rgb), 0.2);
+    }
+
+    &::placeholder {
+      color: rgba(var(--text-rgb), 0.5);
+    }
+  }
+}
+
+.lad-swal-title {
+  color: var(--neon);
+  font-weight: 700;
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+}
+
+.lad-swal-confirm {
+  appearance: none;
+  background: linear-gradient(135deg, var(--neon), var(--neon2));
+  border: none;
+  color: var(--bg);
+  padding: 0.7rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 0 0.5rem;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(var(--neon-rgb), 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &--danger {
+    background: linear-gradient(135deg, #dc5c5c, #c94545);
+
+    &:hover {
+      box-shadow: 0 4px 12px rgba(220, 92, 92, 0.4);
+    }
+  }
+}
+
+.lad-swal-cancel {
+  appearance: none;
+  background: transparent;
+  border: 1px solid rgba(var(--text-rgb), 0.3);
+  color: var(--text);
+  padding: 0.7rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 0 0.5rem;
+
+  &:hover {
+    background: rgba(var(--text-rgb), 0.1);
+    border-color: rgba(var(--text-rgb), 0.5);
+  }
+}
+
+[data-theme="light"] {
+  .lad-swal-popup {
+    box-shadow:
+      0 10px 40px rgba(0, 0, 0, 0.1),
+      0 0 0 1px rgba(var(--neon-rgb), 0.2);
+  }
+
+  .lad-swal-confirm {
+    color: #fff;
+  }
+}

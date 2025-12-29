@@ -10,6 +10,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import AuthProvider from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { ProgressProvider } from "./context/ProgressContext";
 import { IP } from "./ip";
 
 // Import centralized styles with theme variables
@@ -31,7 +32,9 @@ createRoot(document.getElementById("root")).render(
       <IP host={HOST /* , ports: PORTS */}>
         <BrowserRouter basename={process.env.PUBLIC_URL || "/"}>
           <AuthProvider>
-            <App />
+            <ProgressProvider>
+              <App />
+            </ProgressProvider>
           </AuthProvider>
         </BrowserRouter>
       </IP>
